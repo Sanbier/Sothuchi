@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Sổ Thu Chi Online</title>
+    <title>Sổ Thu Chi Gia Đình</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -14,10 +14,10 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDK (Mới) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- SheetJS để xuất Excel -->
+    <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
 
     <style>
@@ -48,7 +48,6 @@
             "Tiền Tiết Kiệm", "Tiền Cá Nhân", "Nợ", "Mua Sắm"
         ];
 
-        // --- ICONS ---
         const IconBase = ({ size = 24, className = "", children }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>);
         const Plus = (p) => <IconBase {...p}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
         const Trash2 = (p) => <IconBase {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
@@ -63,6 +62,8 @@
         const ChevronRight = (p) => <IconBase {...p}><path d="m9 18 6-6-6-6"/></IconBase>;
         const RefreshCw = (p) => <IconBase {...p}><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></IconBase>;
         const Settings = (p) => <IconBase {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
+        const Download = (p) => <IconBase {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconBase>;
+        const Upload = (p) => <IconBase {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></IconBase>;
         const Lightbulb = (p) => <IconBase {...p}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5A6 6 0 0 0 6 8c0 1 .5 2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></IconBase>;
         const Edit2 = (p) => <IconBase {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></IconBase>;
         const Search = (p) => <IconBase {...p}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></IconBase>;
@@ -71,6 +72,7 @@
         const Cloud = (p) => <IconBase {...p}><path d="M17.5 19c0-1.7-1.3-3-3-3h-1.1c-.1-2.6-2.2-4.7-4.8-4.7-2.3 0-4.2 1.6-4.7 3.8C1.8 15.6 0 17.5 0 20c0 2.8 2.2 5 5 5h12.5c2.5 0 4.5-2 4.5-4.5S20 16 17.5 19Z"/></IconBase>;
         const CloudOff = (p) => <IconBase {...p}><path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3"/><line x1="1" x2="23" y1="1" y2="23"/></IconBase>;
         const FileSpreadsheet = (p) => <IconBase {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></IconBase>;
+        const ChevronDown = (p) => <IconBase {...p}><path d="m6 9 6 6 6-6"/></IconBase>;
 
         const CustomDatePicker = ({ value, onChange }) => {
             const displayDate = value ? value.split('-').reverse().join('/') : '';
@@ -87,27 +89,24 @@
             const [expenses, setExpenses] = useState([]);
             const [viewDate, setViewDate] = useState(new Date());
             
-            // Inputs
             const [incomeSource, setIncomeSource] = useState(''); const [incomeAmount, setIncomeAmount] = useState(''); const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0]);
             const [expenseCategory, setExpenseCategory] = useState(''); const [expenseAmount, setExpenseAmount] = useState(''); const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
             const [activeTab, setActiveTab] = useState('add');
             
-            // Edit/Filter State
             const [editingId, setEditingId] = useState(null); const [editingType, setEditingType] = useState(null);
             const [searchTerm, setSearchTerm] = useState(''); const [filterCategory, setFilterCategory] = useState('all');
             
-            // System State
             const [showReloadConfirm, setShowReloadConfirm] = useState(false);
             const [suggestion, setSuggestion] = useState(0);
             
-            // --- FIREBASE STATE ---
             const [firebaseConfigStr, setFirebaseConfigStr] = useState(() => localStorage.getItem('fb_config') || '');
             const [familyCode, setFamilyCode] = useState(() => localStorage.getItem('fb_family_code') || '');
             const [isConnected, setIsConnected] = useState(false);
             const [isSyncing, setIsSyncing] = useState(false);
+            const [showCloudForm, setShowCloudForm] = useState(false); // Toggle Cloud Form
             const dbRef = useRef(null);
+            const fileInputRef = useRef(null);
 
-            // 1. Khởi tạo Firebase và Lắng nghe dữ liệu
             useEffect(() => {
                 if (firebaseConfigStr && familyCode) {
                     try {
@@ -117,59 +116,34 @@
                         dbRef.current = db;
                         setIsConnected(true);
                         setIsSyncing(true);
-
-                        // Lắng nghe realtime
                         const unsubscribe = db.collection('families').doc(familyCode).onSnapshot((doc) => {
-                            if (doc.exists) {
-                                const data = doc.data();
-                                setIncomes(data.incomes || []);
-                                setExpenses(data.expenses || []);
-                            } else {
-                                // Nếu chưa có trên mây thì lấy từ local lên
+                            if (doc.exists) { const data = doc.data(); setIncomes(data.incomes || []); setExpenses(data.expenses || []); } 
+                            else { 
                                 const localIncomes = JSON.parse(localStorage.getItem('family_incomes') || '[]');
                                 const localExpenses = JSON.parse(localStorage.getItem('family_expenses') || '[]');
-                                if (localIncomes.length > 0 || localExpenses.length > 0) {
-                                    db.collection('families').doc(familyCode).set({ incomes: localIncomes, expenses: localExpenses });
-                                }
+                                if (localIncomes.length > 0 || localExpenses.length > 0) { db.collection('families').doc(familyCode).set({ incomes: localIncomes, expenses: localExpenses }); }
                             }
                             setIsSyncing(false);
-                        }, (error) => {
-                            console.error("Lỗi sync:", error);
-                            setIsConnected(false);
-                            alert("Lỗi kết nối! Kiểm tra lại Cấu hình hoặc Mạng.");
-                        });
+                        }, (error) => { console.error(error); setIsConnected(false); });
                         return () => unsubscribe();
                     } catch (e) { console.error(e); setIsConnected(false); }
                 } else {
-                    // Chế độ Offline: Load từ LocalStorage
                     setIncomes(JSON.parse(localStorage.getItem('family_incomes') || '[]'));
                     setExpenses(JSON.parse(localStorage.getItem('family_expenses') || '[]'));
                 }
             }, [firebaseConfigStr, familyCode]);
 
-            // 2. Lưu dữ liệu (Hàm chung cho cả Online và Offline)
             const saveData = (newIncomes, newExpenses) => {
-                setIncomes(newIncomes);
-                setExpenses(newExpenses);
-                
-                // Luôn lưu local để backup
+                setIncomes(newIncomes); setExpenses(newExpenses);
                 localStorage.setItem('family_incomes', JSON.stringify(newIncomes));
                 localStorage.setItem('family_expenses', JSON.stringify(newExpenses));
-
-                // Nếu có mạng thì đẩy lên mây
                 if (isConnected && dbRef.current && familyCode) {
                     setIsSyncing(true);
-                    dbRef.current.collection('families').doc(familyCode).set({
-                        incomes: newIncomes,
-                        expenses: newExpenses
-                    }).then(() => setIsSyncing(false)).catch(() => {
-                        setIsSyncing(false);
-                        alert("Mất kết nối! Dữ liệu đã lưu tạm ở máy.");
-                    });
+                    dbRef.current.collection('families').doc(familyCode).set({ incomes: newIncomes, expenses: newExpenses }).then(() => setIsSyncing(false)).catch(() => setIsSyncing(false));
                 }
             };
 
-            // --- SMART SUGGESTION ---
+            // Smart Suggestion (10 recent items)
             useEffect(() => {
                 if (!expenseCategory) { setSuggestion(0); return; }
                 let history = expenses.filter(e => e.category === expenseCategory);
@@ -201,15 +175,14 @@
                     const searchLower = searchTerm.toLowerCase();
                     const itemText = (type === 'income' ? item.source : item.category).toLowerCase();
                     const itemAmount = item.amount.toString();
-                    const matchesSearch = searchTerm === '' || itemText.includes(searchLower) || itemAmount.includes(searchLower);
-                    const matchesCategory = filterCategory === 'all' || (type === 'expense' && item.category === filterCategory) || (type === 'income' && filterCategory === 'income_type');
-                    return matchesSearch && matchesCategory;
+                    return (searchTerm === '' || itemText.includes(searchLower) || itemAmount.includes(searchLower)) && 
+                           (filterCategory === 'all' || (type === 'expense' && item.category === filterCategory) || (type === 'income' && filterCategory === 'income_type'));
                 });
                 return { filteredIncomes: filter(incomes, 'income'), filteredExpenses: filter(expenses, 'expense') };
             }, [incomes, expenses, startDate, endDate, searchTerm, filterCategory]);
 
             const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
-            const formatDate = (date) => { if(!date) return ''; const d = new Date(date); return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`; };
+            const formatDate = (date) => { if(!date) return ''; const d = new Date(date); return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`; };
             const handleAmountInput = (val, setter) => { const raw = val.replace(/\D/g,''); setter(raw === '' ? '' : Number(raw).toLocaleString('vi-VN')); };
             const parseAmount = (val) => val ? parseInt(val.replace(/\./g,''), 10) : 0;
 
@@ -217,17 +190,13 @@
                 const amt = parseAmount(incomeAmount); if(!incomeSource || amt <= 0) return;
                 const newItem = { id: editingId || Date.now(), source: incomeSource, amount: amt, date: new Date(incomeDate).toISOString() };
                 const newIncomes = editingId && editingType === 'income' ? incomes.map(i => i.id === editingId ? newItem : i) : [newItem, ...incomes];
-                saveData(newIncomes, expenses);
-                if(editingId) alert('Đã cập nhật!');
-                resetForm();
+                saveData(newIncomes, expenses); if(editingId) alert('Đã cập nhật!'); resetForm();
             };
             const handleAddExpense = () => {
                 const amt = parseAmount(expenseAmount); if(!expenseCategory || amt <= 0) return;
                 const newItem = { id: editingId || Date.now(), category: expenseCategory, amount: amt, date: new Date(expenseDate).toISOString() };
                 const newExpenses = editingId && editingType === 'expense' ? expenses.map(e => e.id === editingId ? newItem : e) : [newItem, ...expenses];
-                saveData(incomes, newExpenses);
-                if(editingId) alert('Đã cập nhật!');
-                resetForm();
+                saveData(incomes, newExpenses); if(editingId) alert('Đã cập nhật!'); resetForm();
             };
             const resetForm = () => { setIncomeSource(''); setIncomeAmount(''); setEditingId(null); setEditingType(null); setExpenseCategory(''); setExpenseAmount(''); };
             const handleEdit = (item, type) => {
@@ -235,37 +204,29 @@
                 if (type === 'income') { setIncomeSource(item.source); setIncomeAmount(Number(item.amount).toLocaleString('vi-VN')); setIncomeDate(item.date.split('T')[0]); } 
                 else { setExpenseCategory(item.category); setExpenseAmount(Number(item.amount).toLocaleString('vi-VN')); setExpenseDate(item.date.split('T')[0]); }
             };
-            const deleteItem = (id, type) => { if(confirm('Bạn có chắc muốn xóa?')) { 
-                const newIncomes = type === 'income' ? incomes.filter(i => i.id !== id) : incomes;
-                const newExpenses = type === 'expense' ? expenses.filter(e => e.id !== id) : expenses;
-                saveData(newIncomes, newExpenses);
-            }};
+            const deleteItem = (id, type) => { if(confirm('Bạn có chắc muốn xóa?')) { const newIncomes = type === 'income' ? incomes.filter(i => i.id !== id) : incomes; const newExpenses = type === 'expense' ? expenses.filter(e => e.id !== id) : expenses; saveData(newIncomes, newExpenses); }};
             const applySuggestion = () => { setExpenseAmount(suggestion.toLocaleString('vi-VN')); };
 
-            // --- EXPORT EXCEL ---
             const handleExportExcel = () => {
-                const data = [
-                    ...incomes.map(i => ({ Loại: 'Thu', Mục: i.source, 'Số tiền': i.amount, Ngày: formatDate(i.date) })),
-                    ...expenses.map(e => ({ Loại: 'Chi', Mục: e.category, 'Số tiền': e.amount, Ngày: formatDate(e.date) }))
-                ];
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "ThuChi");
-                XLSX.writeFile(wb, `Sothuchi_${new Date().toISOString().slice(0,10)}.xlsx`);
+                const data = [...incomes.map(i => ({ Loại: 'Thu', Mục: i.source, 'Số tiền': i.amount, Ngày: formatDate(i.date) })), ...expenses.map(e => ({ Loại: 'Chi', Mục: e.category, 'Số tiền': e.amount, Ngày: formatDate(e.date) }))];
+                const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "ThuChi"); XLSX.writeFile(wb, `Sothuchi_${new Date().toISOString().slice(0,10)}.xlsx`);
             };
-
-            // --- HANDLE FIREBASE CONFIG ---
-            const handleSaveConfig = () => {
-                localStorage.setItem('fb_config', firebaseConfigStr);
-                localStorage.setItem('fb_family_code', familyCode);
-                window.location.reload();
+            const handleSaveConfig = () => { localStorage.setItem('fb_config', firebaseConfigStr); localStorage.setItem('fb_family_code', familyCode); window.location.reload(); };
+            const handleDisconnect = () => { if(confirm('Ngắt kết nối?')) { localStorage.removeItem('fb_config'); localStorage.removeItem('fb_family_code'); window.location.reload(); }};
+            
+            // Backup Restore
+            const handleBackup = () => {
+                const data = { incomes, expenses, version: 1, backupDate: new Date().toISOString() };
+                const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `Sothuchi_Backup_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
             };
-            const handleDisconnect = () => {
-                if(confirm('Bạn muốn ngắt kết nối? Dữ liệu trên máy sẽ giữ nguyên, nhưng sẽ không đồng bộ nữa.')) {
-                    localStorage.removeItem('fb_config');
-                    localStorage.removeItem('fb_family_code');
-                    window.location.reload();
-                }
+            const handleRestore = (e) => {
+                const file = e.target.files[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => { try { const data = JSON.parse(event.target.result); if (data.incomes && data.expenses && confirm(`Khôi phục bản sao lưu?`)) { saveData(data.incomes, data.expenses); alert('Thành công!'); } } catch (err) { alert('Lỗi file!'); } };
+                reader.readAsText(file); e.target.value = null;
             };
 
             const sumIncomeMonth = incomes.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; }).reduce((a,c)=>a+c.amount,0);
@@ -291,23 +252,13 @@
                                 <div className="bg-green-500/20 backdrop-blur-sm p-4 rounded-2xl border border-green-500/30"><div className="flex items-center gap-1.5 text-green-300 text-xs font-bold uppercase mb-1"><TrendingUp size={14}/> Tổng thu</div><div className="font-bold text-lg text-green-50">{formatCurrency(sumIncomeMonth)} VNĐ</div></div>
                                 <div className="bg-red-500/20 backdrop-blur-sm p-4 rounded-2xl border border-red-500/30"><div className="flex items-center gap-1.5 text-red-300 text-xs font-bold uppercase mb-1"><TrendingDown size={14}/> Tổng chi</div><div className="font-bold text-lg text-red-50">{formatCurrency(sumExpenseMonth)} VNĐ</div></div>
                             </div>
-                            {/* Connection Status */}
-                            <div className="absolute top-4 right-4">
-                                {isConnected ? 
-                                    <div className="flex items-center gap-1 text-[10px] bg-green-500/20 px-2 py-1 rounded-full border border-green-500/30 text-green-300">
-                                        {isSyncing ? <div className="loader w-3 h-3 border-green-300 border-t-transparent"></div> : <Cloud size={12}/>} Online
-                                    </div> : 
-                                    <div className="flex items-center gap-1 text-[10px] bg-gray-500/40 px-2 py-1 rounded-full border border-gray-500/30 text-gray-300"><CloudOff size={12}/> Offline</div>
-                                }
-                            </div>
+                            <div className="absolute top-4 right-4">{isConnected ? <div className="flex items-center gap-1 text-[10px] bg-green-500/20 px-2 py-1 rounded-full border border-green-500/30 text-green-300">{isSyncing ? <div className="loader w-3 h-3 border-green-300 border-t-transparent"></div> : <Cloud size={12}/>} Online</div> : <div className="flex items-center gap-1 text-[10px] bg-gray-500/40 px-2 py-1 rounded-full border border-gray-500/30 text-gray-300"><CloudOff size={12}/> Offline</div>}</div>
                         </div>
 
                         <div className="px-4 -mt-6 relative z-10">
                             <div className="bg-white rounded-xl shadow-xl p-1.5 flex border border-gray-100">
                                 {['add', 'report', 'history', 'settings'].map(tab => (
-                                    <button key={tab} onClick={()=>{setActiveTab(tab); resetForm();}} className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex justify-center ${activeTab === tab ? 'bg-slate-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}>
-                                        {tab === 'add' ? 'Nhập' : tab === 'report' ? 'Báo Cáo' : tab === 'history' ? 'Lịch Sử' : <Settings size={16}/>}
-                                    </button>
+                                    <button key={tab} onClick={()=>{setActiveTab(tab); resetForm();}} className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex justify-center ${activeTab === tab ? 'bg-slate-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}>{tab === 'add' ? 'Nhập' : tab === 'report' ? 'Báo Cáo' : tab === 'history' ? 'Lịch Sử' : <Settings size={16}/>}</button>
                                 ))}
                             </div>
                         </div>
@@ -395,9 +346,24 @@
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                         <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2"><Settings className="text-slate-600" size={20}/> Cài đặt & Dữ liệu</h3>
                                         
-                                        {/* CLOUD CONNECT SECTION */}
+                                        <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                                            <h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 1. Xuất báo cáo Excel & Sao lưu</h4>
+                                            <p className="text-xs text-green-600 mb-3">Tải file về máy để lưu trữ hoặc xem trên máy tính.</p>
+                                            <div className="flex gap-2">
+                                                <button onClick={handleExportExcel} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><FileSpreadsheet size={16}/> Excel</button>
+                                                <button onClick={handleBackup} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><Download size={16}/> JSON (Backup)</button>
+                                            </div>
+                                            <div className="mt-3 pt-3 border-t border-green-200">
+                                                <button onClick={() => fileInputRef.current.click()} className="w-full py-2 bg-white text-green-700 border border-green-300 font-bold rounded-lg flex justify-center items-center gap-2 text-xs hover:bg-green-50"><Upload size={14}/> Khôi phục từ file JSON</button>
+                                                <input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" />
+                                            </div>
+                                        </div>
+
                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                            <h4 className="font-bold text-blue-800 text-sm mb-2 flex items-center gap-2"><Cloud size={16}/> 1. Đồng bộ Đám mây (Online)</h4>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <h4 className="font-bold text-blue-800 text-sm flex items-center gap-2"><Cloud size={16}/> 2. Đồng bộ Đám mây (Online)</h4>
+                                                <button onClick={()=>setShowCloudForm(!showCloudForm)} className="text-blue-500 hover:text-blue-700"><ChevronDown size={16} className={`transform transition-transform ${showCloudForm ? 'rotate-180' : ''}`}/></button>
+                                            </div>
                                             
                                             {isConnected ? (
                                                 <div className="space-y-3">
@@ -408,26 +374,16 @@
                                                     <button onClick={handleDisconnect} className="w-full py-2 bg-white text-red-500 border border-red-200 font-bold rounded-lg text-xs hover:bg-red-50">Ngắt kết nối</button>
                                                 </div>
                                             ) : (
-                                                <div className="space-y-3">
-                                                    <p className="text-xs text-blue-600 leading-relaxed">Nhập cấu hình Firebase và Mã gia đình để đồng bộ dữ liệu giữa nhiều máy.</p>
-                                                    <div>
-                                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Mã Gia Đình (Tự tạo, vd: NHA-TOI-123)</label>
-                                                        <input type="text" value={familyCode} onChange={e=>setFamilyCode(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-sm bg-white" placeholder="Ví dụ: GD-123456" />
+                                                showCloudForm && (
+                                                    <div className="space-y-3 animate-fadeIn">
+                                                        <p className="text-xs text-blue-600 leading-relaxed">Nhập cấu hình Firebase và Mã gia đình để đồng bộ.</p>
+                                                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Mã Gia Đình</label><input type="text" value={familyCode} onChange={e=>setFamilyCode(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-sm bg-white" placeholder="Ví dụ: GD-123456" /></div>
+                                                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Cấu hình Firebase (JSON)</label><textarea value={firebaseConfigStr} onChange={e=>setFirebaseConfigStr(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-[10px] h-20 bg-white font-mono" placeholder='{"apiKey": "..."}'></textarea></div>
+                                                        <button onClick={handleSaveConfig} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all text-xs">KẾT NỐI NGAY</button>
                                                     </div>
-                                                    <div>
-                                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Cấu hình Firebase (JSON)</label>
-                                                        <textarea value={firebaseConfigStr} onChange={e=>setFirebaseConfigStr(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-[10px] h-20 bg-white font-mono" placeholder='{"apiKey": "...", "authDomain": "..."}'></textarea>
-                                                    </div>
-                                                    <button onClick={handleSaveConfig} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all text-xs">KẾT NỐI NGAY</button>
-                                                </div>
+                                                )
                                             )}
-                                        </div>
-
-                                        {/* EXCEL EXPORT SECTION */}
-                                        <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                                            <h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 2. Xuất báo cáo Excel</h4>
-                                            <p className="text-xs text-green-600 mb-3">Tải file Excel (.xlsx) để xem trên máy tính hoặc in ấn.</p>
-                                            <button onClick={handleExportExcel} className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 transition-all text-xs"><Download size={16}/> Tải file Excel</button>
+                                            {!isConnected && !showCloudForm && <button onClick={()=>setShowCloudForm(true)} className="w-full py-2 bg-white text-blue-600 border border-blue-300 font-bold rounded-lg text-xs mt-2">Thiết lập kết nối</button>}
                                         </div>
                                     </div>
                                 </div>
@@ -461,23 +417,5 @@
     </script>
 </body>
 </html>
-
-📝 Hướng dẫn Lấy "Chìa khóa" Firebase (Làm 1 lần duy nhất)
-Bạn cần thực hiện bước này trên máy tính cho dễ, sau đó copy mã vào điện thoại.
- * Truy cập: console.firebase.google.com (Đăng nhập bằng Gmail).
- * Bấm "Create a project" (hoặc "Add project"). Đặt tên tùy ý (ví dụ: sothuchi), bấm Continue -> Tắt Google Analytics -> Create.
- * Khi tạo xong, bấm vào icon Web (</>) hình tròn màu trắng.
-   * Đặt tên App: web -> Bấm Register app.
- * Nó sẽ hiện ra một đoạn mã. Bạn hãy tìm và chỉ copy phần trong ngoặc nhọn { ... } giống như này:
-   {
-  "apiKey": "AIzaSyD...",
-  "authDomain": "...",
-  "projectId": "...",
-  "storageBucket": "...",
-  "messagingSenderId": "...",
-  "appId": "..."
-}
-
-
 
 
