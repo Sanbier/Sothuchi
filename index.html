@@ -22,6 +22,12 @@
         .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Animation cảnh báo */
+        @keyframes pulse-red {
+            0%, 100% { background-color: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
+            50% { background-color: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); }
+        }
+        .animate-pulse-red { animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         body { -webkit-tap-highlight-color: transparent; background-color: #f9fafb; }
     </style>
 </head>
@@ -68,8 +74,12 @@
         const Download = (p) => <IconBase {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconBase>;
         const Upload = (p) => <IconBase {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></IconBase>;
         const Lightbulb = (p) => <IconBase {...p}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5A6 6 0 0 0 6 8c0 1 .5 2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></IconBase>;
+        const Edit2 = (p) => <IconBase {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></IconBase>;
+        const Search = (p) => <IconBase {...p}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></IconBase>;
+        const AlertTriangle = (p) => <IconBase {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></IconBase>;
+        const X = (p) => <IconBase {...p}><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></IconBase>;
 
-        // --- COMPONENT CHỌN NGÀY TÙY CHỈNH (DD/MM/YYYY) ---
+        // --- COMPONENT CHỌN NGÀY TÙY CHỈNH ---
         const CustomDatePicker = ({ value, onChange }) => {
             const displayDate = value ? value.split('-').reverse().join('/') : '';
             return (
@@ -96,6 +106,15 @@
             const [expenseAmount, setExpenseAmount] = useState('');
             const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
             const [activeTab, setActiveTab] = useState('add');
+            
+            // Edit Mode State
+            const [editingId, setEditingId] = useState(null);
+            const [editingType, setEditingType] = useState(null); // 'income' or 'expense'
+
+            // Search & Filter State
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterCategory, setFilterCategory] = useState('all');
+
             const [showReloadConfirm, setShowReloadConfirm] = useState(false);
             const [suggestion, setSuggestion] = useState(0);
             const fileInputRef = useRef(null);
@@ -103,13 +122,15 @@
             useEffect(() => { localStorage.setItem('family_incomes', JSON.stringify(incomes)); }, [incomes]);
             useEffect(() => { localStorage.setItem('family_expenses', JSON.stringify(expenses)); }, [expenses]);
 
-            // Suggestion Logic
+            // --- LOGIC ---
             useEffect(() => {
                 if (!expenseCategory) { setSuggestion(0); return; }
-                const history = expenses.filter(e => e.category === expenseCategory);
+                let history = expenses.filter(e => e.category === expenseCategory);
                 if (history.length > 0) {
-                    const total = history.reduce((sum, item) => sum + item.amount, 0);
-                    setSuggestion(Math.round(total / history.length));
+                    history.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const recentHistory = history.slice(0, 10);
+                    const total = recentHistory.reduce((sum, item) => sum + item.amount, 0);
+                    setSuggestion(Math.round(total / recentHistory.length));
                 } else { setSuggestion(0); }
             }, [expenseCategory, expenses]);
 
@@ -120,25 +141,87 @@
                 return { startDate, endDate };
             };
             const { startDate, endDate } = useMemo(() => getFiscalRange(viewDate), [viewDate]);
-            const filteredIncomes = incomes.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; });
-            const filteredExpenses = expenses.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; });
+
+            // Filter logic for History Tab (Search + Date + Category)
+            const filterItems = (items, type) => {
+                return items.filter(item => {
+                    const d = new Date(item.date);
+                    const inDateRange = d >= startDate && d <= endDate;
+                    
+                    if (!inDateRange) return false;
+
+                    const matchesSearch = searchTerm === '' || 
+                        (type === 'income' ? item.source : item.category).toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        item.amount.toString().includes(searchTerm);
+                    
+                    const matchesCategory = filterCategory === 'all' || 
+                        (type === 'expense' && item.category === filterCategory) ||
+                        (type === 'income' && filterCategory === 'income_type'); // Simple income filter
+
+                    return matchesSearch && matchesCategory;
+                });
+            };
+
+            const filteredIncomes = filterItems(incomes, 'income');
+            const filteredExpenses = filterItems(expenses, 'expense');
 
             const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
             const formatDate = (date) => { if(!date) return ''; const d = new Date(date); return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`; };
             const handleAmountInput = (val, setter) => { const raw = val.replace(/\D/g,''); setter(raw === '' ? '' : Number(raw).toLocaleString('vi-VN')); };
             const parseAmount = (val) => val ? parseInt(val.replace(/\./g,''), 10) : 0;
 
+            // --- ADD / UPDATE ACTIONS ---
             const handleAddIncome = () => {
                 const amt = parseAmount(incomeAmount); if(!incomeSource || amt <= 0) return;
-                setIncomes([{ id: Date.now(), source: incomeSource, amount: amt, date: new Date(incomeDate).toISOString() }, ...incomes]);
-                setIncomeSource(''); setIncomeAmount('');
+                const newItem = { id: editingId || Date.now(), source: incomeSource, amount: amt, date: new Date(incomeDate).toISOString() };
+                
+                if (editingId && editingType === 'income') {
+                    setIncomes(incomes.map(i => i.id === editingId ? newItem : i));
+                    alert('Đã cập nhật thu nhập!');
+                } else {
+                    setIncomes([newItem, ...incomes]);
+                }
+                resetForm();
             };
+
             const handleAddExpense = () => {
                 const amt = parseAmount(expenseAmount); if(!expenseCategory || amt <= 0) return;
-                setExpenses([{ id: Date.now(), category: expenseCategory, amount: amt, date: new Date(expenseDate).toISOString() }, ...expenses]);
+                const newItem = { id: editingId || Date.now(), category: expenseCategory, amount: amt, date: new Date(expenseDate).toISOString() };
+                
+                if (editingId && editingType === 'expense') {
+                    setExpenses(expenses.map(e => e.id === editingId ? newItem : e));
+                    alert('Đã cập nhật chi tiêu!');
+                } else {
+                    setExpenses([newItem, ...expenses]);
+                }
+                resetForm();
+            };
+
+            const resetForm = () => {
+                setIncomeSource(''); setIncomeAmount(''); setEditingId(null); setEditingType(null);
                 setExpenseCategory(''); setExpenseAmount(''); 
             };
-            const deleteItem = (id, type) => { type === 'income' ? setIncomes(incomes.filter(i => i.id !== id)) : setExpenses(expenses.filter(e => e.id !== id)); };
+
+            const handleEdit = (item, type) => {
+                setEditingId(item.id);
+                setEditingType(type);
+                setActiveTab('add');
+                if (type === 'income') {
+                    setIncomeSource(item.source);
+                    setIncomeAmount(Number(item.amount).toLocaleString('vi-VN'));
+                    setIncomeDate(item.date.split('T')[0]);
+                } else {
+                    setExpenseCategory(item.category);
+                    setExpenseAmount(Number(item.amount).toLocaleString('vi-VN'));
+                    setExpenseDate(item.date.split('T')[0]);
+                }
+            };
+
+            const deleteItem = (id, type) => { 
+                if(confirm('Bạn có chắc muốn xóa mục này?')) {
+                    type === 'income' ? setIncomes(incomes.filter(i => i.id !== id)) : setExpenses(expenses.filter(e => e.id !== id)); 
+                }
+            };
             const applySuggestion = () => { setExpenseAmount(suggestion.toLocaleString('vi-VN')); };
 
             const handleBackup = () => {
@@ -166,13 +249,30 @@
                 reader.readAsText(file); e.target.value = null;
             };
 
-            const totalIncome = filteredIncomes.reduce((a,c)=>a+c.amount,0);
-            const totalExpense = filteredExpenses.reduce((a,c)=>a+c.amount,0);
-            const balance = totalIncome - totalExpense;
+            // Totals
+            const totalIncome = filteredIncomes.reduce((a,c)=>a+c.amount,0); // Filtered total for view
+            const totalExpense = filteredExpenses.reduce((a,c)=>a+c.amount,0); // Filtered total for view
+            
+            // Total for Alert (Tính trên toàn bộ tháng hiện tại, không bị ảnh hưởng bởi search filter)
+            const allIncomesInMonth = incomes.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; });
+            const allExpensesInMonth = expenses.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; });
+            const sumIncomeMonth = allIncomesInMonth.reduce((a,c)=>a+c.amount,0);
+            const sumExpenseMonth = allExpensesInMonth.reduce((a,c)=>a+c.amount,0);
+            
+            const balance = sumIncomeMonth - sumExpenseMonth;
+            const isOverBudget = sumIncomeMonth > 0 && (sumExpenseMonth / sumIncomeMonth) > 0.9;
 
             return (
                 <div className="min-h-screen pb-24 md:pb-0 relative font-sans">
                     <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative">
+                        
+                        {/* BUDGET ALERT */}
+                        {isOverBudget && (
+                            <div className="bg-red-50 text-red-600 px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 animate-pulse-red border-b border-red-100">
+                                <AlertTriangle size={16} /> CẢNH BÁO: Đã chi tiêu quá 90% thu nhập!
+                            </div>
+                        )}
+
                         {/* Header */}
                         <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-6 pb-8 text-white rounded-b-3xl shadow-lg">
                             <div className="flex items-center justify-between mb-4">
@@ -191,11 +291,11 @@
                             <div className="grid grid-cols-2 gap-4 mt-2">
                                 <div className="bg-green-500/20 backdrop-blur-sm p-4 rounded-2xl border border-green-500/30">
                                     <div className="flex items-center gap-1.5 text-green-300 text-xs font-bold uppercase mb-1"><TrendingUp size={14}/> Tổng thu</div>
-                                    <div className="font-bold text-lg text-green-50">{formatCurrency(totalIncome)} VNĐ</div>
+                                    <div className="font-bold text-lg text-green-50">{formatCurrency(sumIncomeMonth)} VNĐ</div>
                                 </div>
                                 <div className="bg-red-500/20 backdrop-blur-sm p-4 rounded-2xl border border-red-500/30">
                                     <div className="flex items-center gap-1.5 text-red-300 text-xs font-bold uppercase mb-1"><TrendingDown size={14}/> Tổng chi</div>
-                                    <div className="font-bold text-lg text-red-50">{formatCurrency(totalExpense)} VNĐ</div>
+                                    <div className="font-bold text-lg text-red-50">{formatCurrency(sumExpenseMonth)} VNĐ</div>
                                 </div>
                             </div>
                         </div>
@@ -204,7 +304,7 @@
                         <div className="px-4 -mt-6 relative z-10">
                             <div className="bg-white rounded-xl shadow-xl p-1.5 flex border border-gray-100">
                                 {['add', 'report', 'history', 'settings'].map(tab => (
-                                    <button key={tab} onClick={()=>setActiveTab(tab)} className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex justify-center ${activeTab === tab ? 'bg-slate-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}>
+                                    <button key={tab} onClick={()=>{setActiveTab(tab); resetForm();}} className={`flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex justify-center ${activeTab === tab ? 'bg-slate-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}>
                                         {tab === 'add' ? 'Nhập' : tab === 'report' ? 'Báo Cáo' : tab === 'history' ? 'Lịch Sử' : <Settings size={16}/>}
                                     </button>
                                 ))}
@@ -215,7 +315,15 @@
                         <div className="p-4 pb-32">
                             {activeTab === 'add' && (
                                 <div className="space-y-6 animate-fadeIn mt-2">
-                                    <div className="bg-white border border-green-100 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                                    {/* Edit Warning */}
+                                    {editingId && (
+                                        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between">
+                                            <span className="font-bold flex items-center gap-2"><Edit2 size={16}/> Đang sửa {editingType === 'income' ? 'thu nhập' : 'chi tiêu'}</span>
+                                            <button onClick={resetForm} className="bg-white p-1 rounded-full border border-yellow-300 text-yellow-600"><X size={14}/></button>
+                                        </div>
+                                    )}
+
+                                    <div className={`bg-white border border-green-100 rounded-2xl p-4 shadow-sm relative overflow-hidden transition-all ${editingId && editingType === 'expense' ? 'opacity-50 pointer-events-none' : ''}`}>
                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>
                                         <div className="flex items-center gap-2 text-green-700 font-bold mb-3"><TrendingUp size={18}/> 1. Thu Nhập</div>
                                         <div className="space-y-3 pl-2">
@@ -224,11 +332,13 @@
                                                 <input type="text" inputMode="numeric" placeholder="0" value={incomeAmount} onChange={e=>handleAmountInput(e.target.value, setIncomeAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg"/>
                                                 <CustomDatePicker value={incomeDate} onChange={e=>setIncomeDate(e.target.value)} />
                                             </div>
-                                            <button onClick={handleAddIncome} disabled={!incomeSource || !incomeAmount} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-200 flex justify-center items-center gap-2"><Plus size={18}/> Thêm</button>
+                                            <button onClick={handleAddIncome} disabled={!incomeSource || !incomeAmount} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-200 flex justify-center items-center gap-2">
+                                                {editingId && editingType === 'income' ? 'Cập Nhật Thu Nhập' : <><Plus size={18}/> Thêm</>}
+                                            </button>
                                         </div>
                                     </div>
                                     
-                                    <div className="bg-white border border-red-100 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                                    <div className={`bg-white border border-red-100 rounded-2xl p-4 shadow-sm relative overflow-hidden transition-all ${editingId && editingType === 'income' ? 'opacity-50 pointer-events-none' : ''}`}>
                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
                                         <div className="flex items-center gap-2 text-red-700 font-bold mb-3"><TrendingDown size={18}/> 2. Chi Tiêu</div>
                                         <div className="space-y-4 pl-2">
@@ -241,11 +351,10 @@
                                                 </div>
                                             </div>
                                             
-                                            {/* HIỂN THỊ GỢI Ý THÔNG MINH */}
-                                            {suggestion > 0 && (
+                                            {suggestion > 0 && !editingId && (
                                                 <div onClick={applySuggestion} className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2 cursor-pointer hover:bg-blue-100 transition-colors animate-fadeIn">
                                                     <Lightbulb size={14} className="text-yellow-500 fill-yellow-500"/>
-                                                    <span>Trung bình mỗi lần: <strong>{formatCurrency(suggestion)} VNĐ</strong></span>
+                                                    <span>Trung bình gần đây: <strong>{formatCurrency(suggestion)} VNĐ</strong></span>
                                                     <span className="ml-auto text-[10px] bg-blue-200 px-2 py-0.5 rounded text-blue-800 font-bold">Dùng luôn</span>
                                                 </div>
                                             )}
@@ -254,7 +363,9 @@
                                                 <input type="text" inputMode="numeric" placeholder="Số tiền..." value={expenseAmount} onChange={e=>handleAmountInput(e.target.value, setExpenseAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg"/>
                                                 <CustomDatePicker value={expenseDate} onChange={e=>setExpenseDate(e.target.value)} />
                                             </div>
-                                            <button onClick={handleAddExpense} disabled={!expenseCategory || !expenseAmount} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 flex justify-center items-center gap-2"><Save size={18}/> Lưu Chi</button>
+                                            <button onClick={handleAddExpense} disabled={!expenseCategory || !expenseAmount} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 flex justify-center items-center gap-2">
+                                                {editingId && editingType === 'expense' ? 'Cập Nhật Chi Tiêu' : <><Save size={18}/> Lưu Chi</>}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -267,7 +378,7 @@
                                         {filteredExpenses.length === 0 ? <div className="text-center py-10 text-gray-400 text-sm">Chưa có dữ liệu kỳ này</div> : 
                                             <div className="space-y-5">
                                                 {Object.entries(filteredExpenses.reduce((a,c)=>{a[c.category]=(a[c.category]||0)+c.amount;return a},{})).sort(([,a],[,b])=>b-a).map(([cat,amt]) => {
-                                                    const pct = totalIncome > 0 ? Math.round((amt/totalIncome)*100) : 0;
+                                                    const pct = sumIncomeMonth > 0 ? Math.round((amt/sumIncomeMonth)*100) : 0;
                                                     return (
                                                         <div key={cat} className="group">
                                                             <div className="flex justify-between text-sm mb-1.5"><span className="font-bold text-gray-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500"></div> {cat}</span><span className="text-gray-900 font-bold">{formatCurrency(amt)} VNĐ</span></div>
@@ -284,11 +395,37 @@
 
                             {activeTab === 'history' && (
                                 <div className="animate-fadeIn mt-2">
-                                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                        <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                                            <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2"><History size={16}/> Lịch sử chi tiết</h3>
-                                            <span className="text-[10px] bg-white border px-2 py-1 rounded text-gray-500 font-medium">{filteredIncomes.length + filteredExpenses.length} bản ghi</span>
+                                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[50vh]">
+                                        <div className="p-4 bg-gray-50 border-b border-gray-100">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2"><History size={16}/> Lịch sử & Tìm kiếm</h3>
+                                                <span className="text-[10px] bg-white border px-2 py-1 rounded text-gray-500 font-medium">{filteredIncomes.length + filteredExpenses.length} bản ghi</span>
+                                            </div>
+                                            
+                                            {/* SEARCH & FILTER UI */}
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <Search size={14} className="absolute left-3 top-3 text-gray-400" />
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Tìm món, số tiền..." 
+                                                        value={searchTerm}
+                                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                                        className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-100 outline-none"
+                                                    />
+                                                </div>
+                                                <select 
+                                                    value={filterCategory} 
+                                                    onChange={(e) => setFilterCategory(e.target.value)}
+                                                    className="pl-2 pr-6 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 outline-none truncate max-w-[100px]"
+                                                >
+                                                    <option value="all">Tất cả</option>
+                                                    <option value="income_type">Thu nhập</option>
+                                                    {FIXED_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                            </div>
                                         </div>
+
                                         <div className="max-h-[60vh] overflow-y-auto">
                                             {[...filteredIncomes.map(i=>({...i,type:'income'})), ...filteredExpenses.map(e=>({...e,type:'expense'}))].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((item,idx) => (
                                                 <div key={item.id} className={`p-4 flex justify-between items-center hover:bg-gray-50 transition-colors ${idx!==0?'border-t border-gray-50':''}`}>
@@ -298,11 +435,14 @@
                                                     </div>
                                                     <div className="text-right">
                                                         <p className={`font-bold text-sm ${item.type==='income'?'text-green-600':'text-red-600'}`}>{item.type==='income'?'+':'-'}{formatCurrency(item.amount)} VNĐ</p>
-                                                        <button onClick={()=>deleteItem(item.id, item.type)} className="text-[10px] text-gray-300 hover:text-red-500 mt-1.5 flex items-center justify-end gap-1 ml-auto font-medium transition-colors"><Trash2 size={10}/> Xóa</button>
+                                                        <div className="flex items-center justify-end gap-3 mt-1.5">
+                                                            <button onClick={()=>handleEdit(item, item.type)} className="text-[10px] text-gray-400 hover:text-blue-600 font-bold flex items-center gap-1"><Edit2 size={10}/> Sửa</button>
+                                                            <button onClick={()=>deleteItem(item.id, item.type)} className="text-[10px] text-gray-400 hover:text-red-500 font-bold flex items-center gap-1"><Trash2 size={10}/> Xóa</button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
-                                            {(filteredIncomes.length===0 && filteredExpenses.length===0) && <div className="p-10 text-center text-gray-400 text-sm">Không có dữ liệu.</div>}
+                                            {(filteredIncomes.length===0 && filteredExpenses.length===0) && <div className="p-10 text-center text-gray-400 text-sm">Không tìm thấy dữ liệu.</div>}
                                         </div>
                                     </div>
                                 </div>
@@ -330,7 +470,7 @@
                             )}
                         </div>
 
-                        {/* Floating Bubble (UPDATED) */}
+                        {/* Floating Bubble */}
                         <div onClick={()=>setShowReloadConfirm(true)} className={`fixed bottom-8 right-4 z-50 flex flex-col items-center gap-1 cursor-pointer transition-all duration-300 ${balance===0?'opacity-80':'opacity-100'}`}>
                             <div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm border border-white/10">Tổng Tiền Còn Lại</div>
                             <div className={`shadow-2xl rounded-full px-5 py-3 flex items-center gap-3 border-2 border-white/20 backdrop-blur-lg transform hover:scale-105 active:scale-95 transition-all ${balance>=0?'bg-gradient-to-r from-blue-600 to-cyan-500':'bg-gradient-to-r from-red-600 to-orange-500'}`}>
