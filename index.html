@@ -103,30 +103,50 @@
             const [familyCode, setFamilyCode] = useState(() => localStorage.getItem('fb_family_code') || '');
             const [isConnected, setIsConnected] = useState(false);
             const [isSyncing, setIsSyncing] = useState(false);
-            const [showCloudForm, setShowCloudForm] = useState(false); // Toggle Cloud Form
+            const [showCloudForm, setShowCloudForm] = useState(false);
             const dbRef = useRef(null);
             const fileInputRef = useRef(null);
 
+            // --- FIREBASE CONNECTION LOGIC (AUTO RECONNECT) ---
             useEffect(() => {
                 if (firebaseConfigStr && familyCode) {
                     try {
-                        const config = JSON.parse(firebaseConfigStr);
-                        if (!firebase.apps.length) { firebase.initializeApp(config); }
+                        // Kiểm tra xem Firebase đã được khởi tạo chưa
+                        if (!firebase.apps.length) {
+                            const config = JSON.parse(firebaseConfigStr);
+                            firebase.initializeApp(config);
+                        }
                         const db = firebase.firestore();
                         dbRef.current = db;
                         setIsConnected(true);
                         setIsSyncing(true);
+
                         const unsubscribe = db.collection('families').doc(familyCode).onSnapshot((doc) => {
-                            if (doc.exists) { const data = doc.data(); setIncomes(data.incomes || []); setExpenses(data.expenses || []); } 
-                            else { 
+                            if (doc.exists) { 
+                                const data = doc.data(); 
+                                setIncomes(data.incomes || []); 
+                                setExpenses(data.expenses || []); 
+                            } else { 
+                                // Nếu chưa có trên mây thì lấy từ local lên
                                 const localIncomes = JSON.parse(localStorage.getItem('family_incomes') || '[]');
                                 const localExpenses = JSON.parse(localStorage.getItem('family_expenses') || '[]');
-                                if (localIncomes.length > 0 || localExpenses.length > 0) { db.collection('families').doc(familyCode).set({ incomes: localIncomes, expenses: localExpenses }); }
+                                if (localIncomes.length > 0 || localExpenses.length > 0) { 
+                                    db.collection('families').doc(familyCode).set({ incomes: localIncomes, expenses: localExpenses }); 
+                                }
                             }
                             setIsSyncing(false);
-                        }, (error) => { console.error(error); setIsConnected(false); });
+                        }, (error) => { 
+                            console.error(error); 
+                            setIsConnected(false); 
+                        });
                         return () => unsubscribe();
-                    } catch (e) { console.error(e); setIsConnected(false); }
+                    } catch (e) { 
+                        console.error("Firebase Config Error:", e); 
+                        setIsConnected(false); 
+                        // Fallback to local storage on error
+                        setIncomes(JSON.parse(localStorage.getItem('family_incomes') || '[]'));
+                        setExpenses(JSON.parse(localStorage.getItem('family_expenses') || '[]'));
+                    }
                 } else {
                     setIncomes(JSON.parse(localStorage.getItem('family_incomes') || '[]'));
                     setExpenses(JSON.parse(localStorage.getItem('family_expenses') || '[]'));
@@ -139,11 +159,13 @@
                 localStorage.setItem('family_expenses', JSON.stringify(newExpenses));
                 if (isConnected && dbRef.current && familyCode) {
                     setIsSyncing(true);
-                    dbRef.current.collection('families').doc(familyCode).set({ incomes: newIncomes, expenses: newExpenses }).then(() => setIsSyncing(false)).catch(() => setIsSyncing(false));
+                    dbRef.current.collection('families').doc(familyCode).set({ incomes: newIncomes, expenses: newExpenses })
+                        .then(() => setIsSyncing(false))
+                        .catch(() => setIsSyncing(false));
                 }
             };
 
-            // Smart Suggestion (10 recent items)
+            // Smart Suggestion
             useEffect(() => {
                 if (!expenseCategory) { setSuggestion(0); return; }
                 let history = expenses.filter(e => e.category === expenseCategory);
@@ -214,7 +236,6 @@
             const handleSaveConfig = () => { localStorage.setItem('fb_config', firebaseConfigStr); localStorage.setItem('fb_family_code', familyCode); window.location.reload(); };
             const handleDisconnect = () => { if(confirm('Ngắt kết nối?')) { localStorage.removeItem('fb_config'); localStorage.removeItem('fb_family_code'); window.location.reload(); }};
             
-            // Backup Restore
             const handleBackup = () => {
                 const data = { incomes, expenses, version: 1, backupDate: new Date().toISOString() };
                 const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
@@ -252,7 +273,16 @@
                                 <div className="bg-green-500/20 backdrop-blur-sm p-4 rounded-2xl border border-green-500/30"><div className="flex items-center gap-1.5 text-green-300 text-xs font-bold uppercase mb-1"><TrendingUp size={14}/> Tổng thu</div><div className="font-bold text-lg text-green-50">{formatCurrency(sumIncomeMonth)} VNĐ</div></div>
                                 <div className="bg-red-500/20 backdrop-blur-sm p-4 rounded-2xl border border-red-500/30"><div className="flex items-center gap-1.5 text-red-300 text-xs font-bold uppercase mb-1"><TrendingDown size={14}/> Tổng chi</div><div className="font-bold text-lg text-red-50">{formatCurrency(sumExpenseMonth)} VNĐ</div></div>
                             </div>
-                            <div className="absolute top-4 right-4">{isConnected ? <div className="flex items-center gap-1 text-[10px] bg-green-500/20 px-2 py-1 rounded-full border border-green-500/30 text-green-300">{isSyncing ? <div className="loader w-3 h-3 border-green-300 border-t-transparent"></div> : <Cloud size={12}/>} Online</div> : <div className="flex items-center gap-1 text-[10px] bg-gray-500/40 px-2 py-1 rounded-full border border-gray-500/30 text-gray-300"><CloudOff size={12}/> Offline</div>}</div>
+                            
+                            {/* MOVED CONNECTION STATUS HERE */}
+                            <div className="flex justify-center mt-3">
+                                {isConnected ? 
+                                    <div className="flex items-center gap-1 text-[10px] bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30 text-green-300 font-medium">
+                                        {isSyncing ? <div className="loader w-3 h-3 border-green-300 border-t-transparent"></div> : <Cloud size={12}/>} Đã kết nối: {familyCode}
+                                    </div> : 
+                                    <div className="flex items-center gap-1 text-[10px] bg-gray-500/40 px-3 py-1 rounded-full border border-gray-500/30 text-gray-300 font-medium"><CloudOff size={12}/> Offline - Dữ liệu máy</div>
+                                }
+                            </div>
                         </div>
 
                         <div className="px-4 -mt-6 relative z-10">
@@ -345,32 +375,25 @@
                                 <div className="space-y-6 animate-fadeIn mt-2">
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                         <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2"><Settings className="text-slate-600" size={20}/> Cài đặt & Dữ liệu</h3>
-                                        
                                         <div className="bg-green-50 p-4 rounded-xl border border-green-100">
                                             <h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 1. Xuất báo cáo Excel & Sao lưu</h4>
-                                            <p className="text-xs text-green-600 mb-3">Tải file về máy để lưu trữ hoặc xem trên máy tính.</p>
                                             <div className="flex gap-2">
                                                 <button onClick={handleExportExcel} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><FileSpreadsheet size={16}/> Excel</button>
-                                                <button onClick={handleBackup} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><Download size={16}/> JSON (Backup)</button>
+                                                <button onClick={handleBackup} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><Download size={16}/> Backup</button>
                                             </div>
                                             <div className="mt-3 pt-3 border-t border-green-200">
-                                                <button onClick={() => fileInputRef.current.click()} className="w-full py-2 bg-white text-green-700 border border-green-300 font-bold rounded-lg flex justify-center items-center gap-2 text-xs hover:bg-green-50"><Upload size={14}/> Khôi phục từ file JSON</button>
+                                                <button onClick={() => fileInputRef.current.click()} className="w-full py-2 bg-white text-green-700 border border-green-300 font-bold rounded-lg flex justify-center items-center gap-2 text-xs hover:bg-green-50"><Upload size={14}/> Khôi phục</button>
                                                 <input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" />
                                             </div>
                                         </div>
-
                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                                             <div className="flex justify-between items-center mb-2">
                                                 <h4 className="font-bold text-blue-800 text-sm flex items-center gap-2"><Cloud size={16}/> 2. Đồng bộ Đám mây (Online)</h4>
                                                 <button onClick={()=>setShowCloudForm(!showCloudForm)} className="text-blue-500 hover:text-blue-700"><ChevronDown size={16} className={`transform transition-transform ${showCloudForm ? 'rotate-180' : ''}`}/></button>
                                             </div>
-                                            
                                             {isConnected ? (
                                                 <div className="space-y-3">
-                                                    <div className="bg-white p-3 rounded-lg border border-blue-200">
-                                                        <p className="text-xs text-gray-500 uppercase font-bold">Đang kết nối tới:</p>
-                                                        <p className="text-sm font-bold text-blue-600 mt-1">{familyCode}</p>
-                                                    </div>
+                                                    <div className="bg-white p-3 rounded-lg border border-blue-200"><p className="text-xs text-gray-500 uppercase font-bold">Đang kết nối tới:</p><p className="text-sm font-bold text-blue-600 mt-1">{familyCode}</p></div>
                                                     <button onClick={handleDisconnect} className="w-full py-2 bg-white text-red-500 border border-red-200 font-bold rounded-lg text-xs hover:bg-red-50">Ngắt kết nối</button>
                                                 </div>
                                             ) : (
