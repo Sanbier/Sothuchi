@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+l<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -7,17 +7,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Sổ Thu Chi Gia Đình</title>
     
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
 
     <style>
@@ -34,16 +29,15 @@
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* CSS cho nút bấm 3 cột */
         .category-btn {
-            min-height: 44px; /* Chiều cao tối thiểu */
+            min-height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            line-height: 1.1; /* Dãn dòng sát lại chút cho gọn */
-            word-break: break-word; /* Tự xuống dòng nếu dài */
-            white-space: normal; /* Cho phép xuống dòng */
+            line-height: 1.1;
+            word-break: break-word;
+            white-space: normal;
         }
     </style>
 </head>
@@ -60,6 +54,7 @@
             "Tiền Tiết Kiệm", "Tiền Cá Nhân", "Nợ", "Mua Sắm"
         ];
 
+        // Icons
         const IconBase = ({ size = 24, className = "", children }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>);
         const Plus = (p) => <IconBase {...p}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
         const Trash2 = (p) => <IconBase {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
@@ -85,6 +80,8 @@
         const CloudOff = (p) => <IconBase {...p}><path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3"/><line x1="1" x2="23" y1="1" y2="23"/></IconBase>;
         const FileSpreadsheet = (p) => <IconBase {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></IconBase>;
         const ChevronDown = (p) => <IconBase {...p}><path d="m6 9 6 6 6-6"/></IconBase>;
+        const BookOpen = (p) => <IconBase {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
+        const CheckSquare = (p) => <IconBase {...p}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></IconBase>;
 
         const CustomDatePicker = ({ value, onChange }) => {
             const displayDate = value ? value.split('-').reverse().join('/') : '';
@@ -99,6 +96,7 @@
         const App = () => {
             const [incomes, setIncomes] = useState([]);
             const [expenses, setExpenses] = useState([]);
+            const [fixedTemplate, setFixedTemplate] = useState([]); // { category, amount }
             const [viewDate, setViewDate] = useState(new Date());
             
             const [incomeSource, setIncomeSource] = useState(''); const [incomeAmount, setIncomeAmount] = useState(''); const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0]);
@@ -111,6 +109,11 @@
             const [showReloadConfirm, setShowReloadConfirm] = useState(false);
             const [suggestion, setSuggestion] = useState(0);
             
+            // Fixed Expenses State
+            const [showFixedConfig, setShowFixedConfig] = useState(false);
+            const [tempFixedList, setTempFixedList] = useState({});
+
+            // Firebase State
             const [firebaseConfigStr, setFirebaseConfigStr] = useState(() => localStorage.getItem('fb_config') || '');
             const [familyCode, setFamilyCode] = useState(() => localStorage.getItem('fb_family_code') || '');
             const [isConnected, setIsConnected] = useState(false);
@@ -119,6 +122,7 @@
             const dbRef = useRef(null);
             const fileInputRef = useRef(null);
 
+            // --- FIREBASE & DATA LOADING ---
             useEffect(() => {
                 if (firebaseConfigStr && familyCode) {
                     try {
@@ -129,11 +133,16 @@
                         setIsConnected(true);
                         setIsSyncing(true);
                         const unsubscribe = db.collection('families').doc(familyCode).onSnapshot((doc) => {
-                            if (doc.exists) { const data = doc.data(); setIncomes(data.incomes || []); setExpenses(data.expenses || []); } 
-                            else { 
+                            if (doc.exists) { 
+                                const data = doc.data(); 
+                                setIncomes(data.incomes || []); 
+                                setExpenses(data.expenses || []); 
+                                setFixedTemplate(data.fixedTemplate || []); // Sync fixed template
+                            } else { 
                                 const localIncomes = JSON.parse(localStorage.getItem('family_incomes') || '[]');
                                 const localExpenses = JSON.parse(localStorage.getItem('family_expenses') || '[]');
-                                if (localIncomes.length > 0 || localExpenses.length > 0) { db.collection('families').doc(familyCode).set({ incomes: localIncomes, expenses: localExpenses }); }
+                                const localFixed = JSON.parse(localStorage.getItem('family_fixed_template') || '[]');
+                                db.collection('families').doc(familyCode).set({ incomes: localIncomes, expenses: localExpenses, fixedTemplate: localFixed }); 
                             }
                             setIsSyncing(false);
                         }, (error) => { console.error(error); setIsConnected(false); });
@@ -142,16 +151,20 @@
                 } else {
                     setIncomes(JSON.parse(localStorage.getItem('family_incomes') || '[]'));
                     setExpenses(JSON.parse(localStorage.getItem('family_expenses') || '[]'));
+                    setFixedTemplate(JSON.parse(localStorage.getItem('family_fixed_template') || '[]'));
                 }
             }, [firebaseConfigStr, familyCode]);
 
-            const saveData = (newIncomes, newExpenses) => {
-                setIncomes(newIncomes); setExpenses(newExpenses);
+            const saveData = (newIncomes, newExpenses, newFixed = fixedTemplate) => {
+                setIncomes(newIncomes); setExpenses(newExpenses); setFixedTemplate(newFixed);
                 localStorage.setItem('family_incomes', JSON.stringify(newIncomes));
                 localStorage.setItem('family_expenses', JSON.stringify(newExpenses));
+                localStorage.setItem('family_fixed_template', JSON.stringify(newFixed));
+                
                 if (isConnected && dbRef.current && familyCode) {
                     setIsSyncing(true);
-                    dbRef.current.collection('families').doc(familyCode).set({ incomes: newIncomes, expenses: newExpenses }).then(() => setIsSyncing(false)).catch(() => setIsSyncing(false));
+                    dbRef.current.collection('families').doc(familyCode).set({ incomes: newIncomes, expenses: newExpenses, fixedTemplate: newFixed })
+                        .then(() => setIsSyncing(false)).catch(() => setIsSyncing(false));
                 }
             };
 
@@ -203,6 +216,47 @@
             const handleAmountInput = (val, setter) => { const raw = val.replace(/\D/g,''); setter(raw === '' ? '' : Number(raw).toLocaleString('vi-VN')); };
             const parseAmount = (val) => val ? parseInt(val.replace(/\./g,''), 10) : 0;
 
+            // --- FIXED EXPENSES LOGIC ---
+            const openFixedConfig = () => {
+                const currentMap = {};
+                fixedTemplate.forEach(item => currentMap[item.category] = item.amount);
+                setTempFixedList(currentMap);
+                setShowFixedConfig(true);
+            };
+
+            const handleFixedAmountChange = (cat, val) => {
+                const raw = val.replace(/\D/g,'');
+                const amt = raw === '' ? 0 : parseInt(raw, 10);
+                setTempFixedList(prev => ({ ...prev, [cat]: amt }));
+            };
+
+            const saveFixedConfig = () => {
+                const newTemplate = [];
+                Object.entries(tempFixedList).forEach(([cat, amt]) => {
+                    if (amt > 0) newTemplate.push({ category: cat, amount: amt });
+                });
+                saveData(incomes, expenses, newTemplate);
+                setShowFixedConfig(false);
+                alert('Đã lưu cấu hình khoản cố định!');
+            };
+
+            const applyFixedExpenses = () => {
+                if (fixedTemplate.length === 0) {
+                    alert('Bạn chưa cài đặt khoản cố định nào. Hãy bấm "Cấu hình" trước.');
+                    return;
+                }
+                const today = new Date().toISOString();
+                const newItems = fixedTemplate.map(item => ({
+                    id: Date.now() + Math.random(),
+                    category: item.category,
+                    amount: item.amount,
+                    date: today
+                }));
+                saveData(incomes, [...newItems, ...expenses], fixedTemplate);
+                alert(`Đã thêm ${newItems.length} khoản chi vào hôm nay!`);
+            };
+
+            // --- MAIN ACTIONS ---
             const handleAddIncome = () => {
                 const amt = parseAmount(incomeAmount); if(!incomeSource || amt <= 0) return;
                 const newItem = { id: editingId || Date.now(), source: incomeSource, amount: amt, date: new Date(incomeDate).toISOString() };
@@ -229,7 +283,7 @@
                 const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "ThuChi"); XLSX.writeFile(wb, `Sothuchi_${new Date().toISOString().slice(0,10)}.xlsx`);
             };
             const handleBackup = () => {
-                const data = { incomes, expenses, version: 1, backupDate: new Date().toISOString() };
+                const data = { incomes, expenses, fixedTemplate, version: 1, backupDate: new Date().toISOString() };
                 const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a'); a.href = url; a.download = `Sothuchi_Backup_${new Date().toISOString().slice(0,10)}.json`;
@@ -238,7 +292,7 @@
             const handleRestore = (e) => {
                 const file = e.target.files[0]; if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (event) => { try { const data = JSON.parse(event.target.result); if (data.incomes && data.expenses && confirm(`Khôi phục bản sao lưu?`)) { saveData(data.incomes, data.expenses); alert('Thành công!'); } } catch (err) { alert('Lỗi file!'); } };
+                reader.onload = (event) => { try { const data = JSON.parse(event.target.result); if (data.incomes && data.expenses && confirm(`Khôi phục bản sao lưu?`)) { saveData(data.incomes, data.expenses, data.fixedTemplate || []); alert('Thành công!'); } } catch (err) { alert('Lỗi file!'); } };
                 reader.readAsText(file); e.target.value = null;
             };
 
@@ -265,15 +319,8 @@
                                 <div className="bg-green-500/20 backdrop-blur-sm p-4 rounded-2xl border border-green-500/30"><div className="flex items-center gap-1.5 text-green-300 text-xs font-bold uppercase mb-1"><TrendingUp size={14}/> Tổng thu</div><div className="font-bold text-lg text-green-50">{formatCurrency(sumIncomeMonth)} VNĐ</div></div>
                                 <div className="bg-red-500/20 backdrop-blur-sm p-4 rounded-2xl border border-red-500/30"><div className="flex items-center gap-1.5 text-red-300 text-xs font-bold uppercase mb-1"><TrendingDown size={14}/> Tổng chi</div><div className="font-bold text-lg text-red-50">{formatCurrency(sumExpenseMonth)} VNĐ</div></div>
                             </div>
-                            
-                            {/* MOVED CONNECTION STATUS HERE */}
                             <div className="flex justify-center mt-3">
-                                {isConnected ? 
-                                    <div className="flex items-center gap-1 text-[10px] bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30 text-green-300 font-medium">
-                                        {isSyncing ? <div className="loader w-3 h-3 border-green-300 border-t-transparent"></div> : <Cloud size={12}/>} Đã kết nối: {familyCode}
-                                    </div> : 
-                                    <div className="flex items-center gap-1 text-[10px] bg-gray-500/40 px-3 py-1 rounded-full border border-gray-500/30 text-gray-300 font-medium"><CloudOff size={12}/> Offline - Dữ liệu máy</div>
-                                }
+                                {isConnected ? <div className="flex items-center gap-1 text-[10px] bg-green-500/20 px-3 py-1 rounded-full border border-green-500/30 text-green-300 font-medium">{isSyncing ? <div className="loader w-3 h-3 border-green-300 border-t-transparent"></div> : <Cloud size={12}/>} Đã kết nối: {familyCode}</div> : <div className="flex items-center gap-1 text-[10px] bg-gray-500/40 px-3 py-1 rounded-full border border-gray-500/30 text-gray-300 font-medium"><CloudOff size={12}/> Offline - Dữ liệu máy</div>}
                             </div>
                         </div>
 
@@ -300,7 +347,6 @@
                                     <div className={`bg-white border border-red-100 rounded-2xl p-4 shadow-sm relative overflow-hidden ${editingId && editingType === 'income' ? 'opacity-50 pointer-events-none' : ''}`}>
                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div><div className="flex items-center gap-2 text-red-700 font-bold mb-3"><TrendingDown size={18}/> 2. Chi Tiêu</div>
                                         <div className="space-y-4 pl-2">
-                                            {/* GRID 3 CỘT CỐ ĐỊNH + NÚT BẤM DÀN HÀNG */}
                                             <div><label className="text-xs text-gray-400 font-bold uppercase mb-2 block">Chọn mục chi:</label><div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">{FIXED_CATEGORIES.map(cat => <button key={cat} onClick={()=>setExpenseCategory(cat)} className={`category-btn p-2 text-[10px] font-bold rounded-lg border transition-all ${expenseCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-100' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{cat}</button>)}</div></div>
                                             {suggestion > 0 && !editingId && <div onClick={applySuggestion} className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2 cursor-pointer hover:bg-blue-100 animate-fadeIn"><Lightbulb size={14} className="text-yellow-500 fill-yellow-500"/><span>Trung bình gần đây: <strong>{formatCurrency(suggestion)} VNĐ</strong></span><span className="ml-auto text-[10px] bg-blue-200 px-2 py-0.5 rounded text-blue-800 font-bold">Dùng luôn</span></div>}
                                             <div className="flex gap-2 pt-2 border-t border-gray-100"><input type="text" inputMode="numeric" placeholder="Số tiền..." value={expenseAmount} onChange={e=>handleAmountInput(e.target.value, setExpenseAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg"/><CustomDatePicker value={expenseDate} onChange={e=>setExpenseDate(e.target.value)} /></div>
@@ -368,8 +414,19 @@
                                 <div className="space-y-6 animate-fadeIn mt-2">
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                         <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2"><Settings className="text-slate-600" size={20}/> Cài đặt & Dữ liệu</h3>
+                                        
+                                        {/* FIXED EXPENSES MANAGER (NEW) */}
+                                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <h4 className="font-bold text-purple-800 text-sm flex items-center gap-2"><BookOpen size={16}/> 1. Các khoản chi cố định</h4>
+                                                <button onClick={openFixedConfig} className="text-purple-600 text-xs font-bold border border-purple-200 bg-white px-2 py-1 rounded">Cấu hình mẫu</button>
+                                            </div>
+                                            <p className="text-xs text-purple-600 mb-3">Tự động điền các khoản chi tiêu hàng tháng theo mẫu đã cài đặt.</p>
+                                            <button onClick={applyFixedExpenses} className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs transition-all"><CheckSquare size={16}/> Áp dụng cho tháng này</button>
+                                        </div>
+
                                         <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                                            <h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 1. Xuất báo cáo Excel & Sao lưu</h4>
+                                            <h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 2. Xuất Excel & Backup</h4>
                                             <div className="flex gap-2">
                                                 <button onClick={handleExportExcel} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><FileSpreadsheet size={16}/> Excel</button>
                                                 <button onClick={handleBackup} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><Download size={16}/> Backup</button>
@@ -379,9 +436,10 @@
                                                 <input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" />
                                             </div>
                                         </div>
+
                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                                             <div className="flex justify-between items-center mb-2">
-                                                <h4 className="font-bold text-blue-800 text-sm flex items-center gap-2"><Cloud size={16}/> 2. Đồng bộ Đám mây (Online)</h4>
+                                                <h4 className="font-bold text-blue-800 text-sm flex items-center gap-2"><Cloud size={16}/> 3. Đồng bộ Đám mây (Online)</h4>
                                                 <button onClick={()=>setShowCloudForm(!showCloudForm)} className="text-blue-500 hover:text-blue-700"><ChevronDown size={16} className={`transform transition-transform ${showCloudForm ? 'rotate-180' : ''}`}/></button>
                                             </div>
                                             {isConnected ? (
@@ -405,6 +463,37 @@
                                 </div>
                             )}
                         </div>
+
+                        {/* FIXED CONFIG MODAL */}
+                        {showFixedConfig && (
+                            <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+                                <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+                                    <div className="p-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center">
+                                        <h3 className="font-bold text-purple-800 flex items-center gap-2">Cài đặt khoản cố định</h3>
+                                        <button onClick={()=>setShowFixedConfig(false)}><X size={20} className="text-purple-400"/></button>
+                                    </div>
+                                    <div className="p-4 overflow-y-auto flex-1 space-y-3">
+                                        <p className="text-xs text-gray-500 mb-2 italic">Nhập số tiền cho các mục cố định hàng tháng (Để trống nếu không có).</p>
+                                        {FIXED_CATEGORIES.map(cat => (
+                                            <div key={cat} className="flex items-center justify-between gap-2 border-b border-gray-50 pb-2">
+                                                <span className="text-sm font-medium text-gray-700 flex-1">{cat}</span>
+                                                <input 
+                                                    type="text" 
+                                                    inputMode="numeric" 
+                                                    placeholder="0"
+                                                    value={tempFixedList[cat] ? Number(tempFixedList[cat]).toLocaleString('vi-VN') : ''}
+                                                    onChange={(e) => handleFixedAmountChange(cat, e.target.value)}
+                                                    className="w-24 p-2 bg-gray-50 border border-gray-200 rounded text-right text-sm font-bold text-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="p-4 border-t border-gray-100">
+                                        <button onClick={saveFixedConfig} className="w-full py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-all">Lưu Cấu Hình</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div onClick={()=>setShowReloadConfirm(true)} className={`fixed bottom-8 right-4 z-50 flex flex-col items-center gap-1 cursor-pointer transition-all duration-300 ${balance===0?'opacity-80':'opacity-100'}`}>
                             <div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm border border-white/10">Tổng Tiền Còn Lại</div>
