@@ -5,30 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Sổ Thu Chi Gia Đình</title>
+    <title>Sổ Thu Chi Online</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
     <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK (Mới) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- SheetJS để xuất Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
 
     <style>
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* Animation cảnh báo */
         @keyframes pulse-red {
             0%, 100% { background-color: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
             50% { background-color: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); }
         }
         .animate-pulse-red { animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         body { -webkit-tap-highlight-color: transparent; background-color: #f9fafb; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -37,23 +41,11 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- DANH SÁCH MỤC ---
         const FIXED_CATEGORIES = [
-            "Ăn (Sáng/Trưa/Tối)",
-            "Ăn vặt/Nước ngọt",
-            "Wi-Fi & Điện", 
-            "Cưới hỏi & Ma chay", 
-            "Học phí cho Con",
-            "Bỉm cho Con", 
-            "Sữa cho Con", 
-            "Xăng xe", 
-            "Rác thải sinh hoạt", 
-            "Nhu Yếu Phẩm", 
-            "Đồ dùng Y Tế", 
-            "Tiền Tiết Kiệm", 
-            "Tiền Cá Nhân", 
-            "Nợ", 
-            "Mua Sắm"
+            "Ăn (Sáng/Trưa/Tối)", "Ăn vặt/Nước ngọt", "Wi-Fi & Điện", "Cưới hỏi & Ma chay", 
+            "Học phí cho Con", "Bỉm cho Con", "Sữa cho Con", "Xăng xe", 
+            "Rác thải sinh hoạt", "Nhu Yếu Phẩm", "Đồ dùng Y Tế", 
+            "Tiền Tiết Kiệm", "Tiền Cá Nhân", "Nợ", "Mua Sắm"
         ];
 
         // --- ICONS ---
@@ -71,58 +63,113 @@
         const ChevronRight = (p) => <IconBase {...p}><path d="m9 18 6-6-6-6"/></IconBase>;
         const RefreshCw = (p) => <IconBase {...p}><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></IconBase>;
         const Settings = (p) => <IconBase {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
-        const Download = (p) => <IconBase {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconBase>;
-        const Upload = (p) => <IconBase {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></IconBase>;
         const Lightbulb = (p) => <IconBase {...p}><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5A6 6 0 0 0 6 8c0 1 .5 2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></IconBase>;
         const Edit2 = (p) => <IconBase {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></IconBase>;
         const Search = (p) => <IconBase {...p}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></IconBase>;
         const AlertTriangle = (p) => <IconBase {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></IconBase>;
         const X = (p) => <IconBase {...p}><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></IconBase>;
+        const Cloud = (p) => <IconBase {...p}><path d="M17.5 19c0-1.7-1.3-3-3-3h-1.1c-.1-2.6-2.2-4.7-4.8-4.7-2.3 0-4.2 1.6-4.7 3.8C1.8 15.6 0 17.5 0 20c0 2.8 2.2 5 5 5h12.5c2.5 0 4.5-2 4.5-4.5S20 16 17.5 19Z"/></IconBase>;
+        const CloudOff = (p) => <IconBase {...p}><path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3"/><line x1="1" x2="23" y1="1" y2="23"/></IconBase>;
+        const FileSpreadsheet = (p) => <IconBase {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></IconBase>;
 
-        // --- COMPONENT CHỌN NGÀY TÙY CHỈNH ---
         const CustomDatePicker = ({ value, onChange }) => {
             const displayDate = value ? value.split('-').reverse().join('/') : '';
             return (
                 <div className="relative w-36">
                     <input type="date" value={value} onChange={onChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
-                    <div className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-medium text-gray-500 flex items-center justify-between pointer-events-none">
-                        <span>{displayDate}</span><CalendarIcon size={14} className="ml-1 opacity-70"/>
-                    </div>
+                    <div className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-medium text-gray-500 flex items-center justify-between pointer-events-none"><span>{displayDate}</span><CalendarIcon size={14} className="ml-1 opacity-70"/></div>
                 </div>
             );
         };
 
-        // --- APP ---
         const App = () => {
-            const [incomes, setIncomes] = useState(() => JSON.parse(localStorage.getItem('family_incomes') || '[]'));
-            const [expenses, setExpenses] = useState(() => JSON.parse(localStorage.getItem('family_expenses') || '[]'));
+            const [incomes, setIncomes] = useState([]);
+            const [expenses, setExpenses] = useState([]);
             const [viewDate, setViewDate] = useState(new Date());
             
             // Inputs
-            const [incomeSource, setIncomeSource] = useState('');
-            const [incomeAmount, setIncomeAmount] = useState('');
-            const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0]);
-            const [expenseCategory, setExpenseCategory] = useState('');
-            const [expenseAmount, setExpenseAmount] = useState('');
-            const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
+            const [incomeSource, setIncomeSource] = useState(''); const [incomeAmount, setIncomeAmount] = useState(''); const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0]);
+            const [expenseCategory, setExpenseCategory] = useState(''); const [expenseAmount, setExpenseAmount] = useState(''); const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
             const [activeTab, setActiveTab] = useState('add');
             
-            // Edit Mode State
-            const [editingId, setEditingId] = useState(null);
-            const [editingType, setEditingType] = useState(null); // 'income' or 'expense'
-
-            // Search & Filter State
-            const [searchTerm, setSearchTerm] = useState('');
-            const [filterCategory, setFilterCategory] = useState('all');
-
+            // Edit/Filter State
+            const [editingId, setEditingId] = useState(null); const [editingType, setEditingType] = useState(null);
+            const [searchTerm, setSearchTerm] = useState(''); const [filterCategory, setFilterCategory] = useState('all');
+            
+            // System State
             const [showReloadConfirm, setShowReloadConfirm] = useState(false);
             const [suggestion, setSuggestion] = useState(0);
-            const fileInputRef = useRef(null);
+            
+            // --- FIREBASE STATE ---
+            const [firebaseConfigStr, setFirebaseConfigStr] = useState(() => localStorage.getItem('fb_config') || '');
+            const [familyCode, setFamilyCode] = useState(() => localStorage.getItem('fb_family_code') || '');
+            const [isConnected, setIsConnected] = useState(false);
+            const [isSyncing, setIsSyncing] = useState(false);
+            const dbRef = useRef(null);
 
-            useEffect(() => { localStorage.setItem('family_incomes', JSON.stringify(incomes)); }, [incomes]);
-            useEffect(() => { localStorage.setItem('family_expenses', JSON.stringify(expenses)); }, [expenses]);
+            // 1. Khởi tạo Firebase và Lắng nghe dữ liệu
+            useEffect(() => {
+                if (firebaseConfigStr && familyCode) {
+                    try {
+                        const config = JSON.parse(firebaseConfigStr);
+                        if (!firebase.apps.length) { firebase.initializeApp(config); }
+                        const db = firebase.firestore();
+                        dbRef.current = db;
+                        setIsConnected(true);
+                        setIsSyncing(true);
 
-            // --- LOGIC ---
+                        // Lắng nghe realtime
+                        const unsubscribe = db.collection('families').doc(familyCode).onSnapshot((doc) => {
+                            if (doc.exists) {
+                                const data = doc.data();
+                                setIncomes(data.incomes || []);
+                                setExpenses(data.expenses || []);
+                            } else {
+                                // Nếu chưa có trên mây thì lấy từ local lên
+                                const localIncomes = JSON.parse(localStorage.getItem('family_incomes') || '[]');
+                                const localExpenses = JSON.parse(localStorage.getItem('family_expenses') || '[]');
+                                if (localIncomes.length > 0 || localExpenses.length > 0) {
+                                    db.collection('families').doc(familyCode).set({ incomes: localIncomes, expenses: localExpenses });
+                                }
+                            }
+                            setIsSyncing(false);
+                        }, (error) => {
+                            console.error("Lỗi sync:", error);
+                            setIsConnected(false);
+                            alert("Lỗi kết nối! Kiểm tra lại Cấu hình hoặc Mạng.");
+                        });
+                        return () => unsubscribe();
+                    } catch (e) { console.error(e); setIsConnected(false); }
+                } else {
+                    // Chế độ Offline: Load từ LocalStorage
+                    setIncomes(JSON.parse(localStorage.getItem('family_incomes') || '[]'));
+                    setExpenses(JSON.parse(localStorage.getItem('family_expenses') || '[]'));
+                }
+            }, [firebaseConfigStr, familyCode]);
+
+            // 2. Lưu dữ liệu (Hàm chung cho cả Online và Offline)
+            const saveData = (newIncomes, newExpenses) => {
+                setIncomes(newIncomes);
+                setExpenses(newExpenses);
+                
+                // Luôn lưu local để backup
+                localStorage.setItem('family_incomes', JSON.stringify(newIncomes));
+                localStorage.setItem('family_expenses', JSON.stringify(newExpenses));
+
+                // Nếu có mạng thì đẩy lên mây
+                if (isConnected && dbRef.current && familyCode) {
+                    setIsSyncing(true);
+                    dbRef.current.collection('families').doc(familyCode).set({
+                        incomes: newIncomes,
+                        expenses: newExpenses
+                    }).then(() => setIsSyncing(false)).catch(() => {
+                        setIsSyncing(false);
+                        alert("Mất kết nối! Dữ liệu đã lưu tạm ở máy.");
+                    });
+                }
+            };
+
+            // --- SMART SUGGESTION ---
             useEffect(() => {
                 if (!expenseCategory) { setSuggestion(0); return; }
                 let history = expenses.filter(e => e.category === expenseCategory);
@@ -134,6 +181,11 @@
                 } else { setSuggestion(0); }
             }, [expenseCategory, expenses]);
 
+            const availableFilterCategories = useMemo(() => {
+                const historyCategories = expenses.map(e => e.category);
+                return Array.from(new Set([...FIXED_CATEGORIES, ...historyCategories])).sort();
+            }, [expenses]);
+
             const getFiscalRange = (date) => {
                 const year = date.getFullYear(), month = date.getMonth();
                 const startDate = new Date(year, month, 0); startDate.setHours(0,0,0,0);
@@ -142,165 +194,114 @@
             };
             const { startDate, endDate } = useMemo(() => getFiscalRange(viewDate), [viewDate]);
 
-            // Filter logic for History Tab (Search + Date + Category)
-            const filterItems = (items, type) => {
-                return items.filter(item => {
+            const { filteredIncomes, filteredExpenses } = useMemo(() => {
+                const filter = (items, type) => items.filter(item => {
                     const d = new Date(item.date);
-                    const inDateRange = d >= startDate && d <= endDate;
-                    
-                    if (!inDateRange) return false;
-
-                    const matchesSearch = searchTerm === '' || 
-                        (type === 'income' ? item.source : item.category).toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        item.amount.toString().includes(searchTerm);
-                    
-                    const matchesCategory = filterCategory === 'all' || 
-                        (type === 'expense' && item.category === filterCategory) ||
-                        (type === 'income' && filterCategory === 'income_type'); // Simple income filter
-
+                    if (!(d >= startDate && d <= endDate)) return false;
+                    const searchLower = searchTerm.toLowerCase();
+                    const itemText = (type === 'income' ? item.source : item.category).toLowerCase();
+                    const itemAmount = item.amount.toString();
+                    const matchesSearch = searchTerm === '' || itemText.includes(searchLower) || itemAmount.includes(searchLower);
+                    const matchesCategory = filterCategory === 'all' || (type === 'expense' && item.category === filterCategory) || (type === 'income' && filterCategory === 'income_type');
                     return matchesSearch && matchesCategory;
                 });
-            };
-
-            const filteredIncomes = filterItems(incomes, 'income');
-            const filteredExpenses = filterItems(expenses, 'expense');
+                return { filteredIncomes: filter(incomes, 'income'), filteredExpenses: filter(expenses, 'expense') };
+            }, [incomes, expenses, startDate, endDate, searchTerm, filterCategory]);
 
             const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
             const formatDate = (date) => { if(!date) return ''; const d = new Date(date); return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}`; };
             const handleAmountInput = (val, setter) => { const raw = val.replace(/\D/g,''); setter(raw === '' ? '' : Number(raw).toLocaleString('vi-VN')); };
             const parseAmount = (val) => val ? parseInt(val.replace(/\./g,''), 10) : 0;
 
-            // --- ADD / UPDATE ACTIONS ---
             const handleAddIncome = () => {
                 const amt = parseAmount(incomeAmount); if(!incomeSource || amt <= 0) return;
                 const newItem = { id: editingId || Date.now(), source: incomeSource, amount: amt, date: new Date(incomeDate).toISOString() };
-                
-                if (editingId && editingType === 'income') {
-                    setIncomes(incomes.map(i => i.id === editingId ? newItem : i));
-                    alert('Đã cập nhật thu nhập!');
-                } else {
-                    setIncomes([newItem, ...incomes]);
-                }
+                const newIncomes = editingId && editingType === 'income' ? incomes.map(i => i.id === editingId ? newItem : i) : [newItem, ...incomes];
+                saveData(newIncomes, expenses);
+                if(editingId) alert('Đã cập nhật!');
                 resetForm();
             };
-
             const handleAddExpense = () => {
                 const amt = parseAmount(expenseAmount); if(!expenseCategory || amt <= 0) return;
                 const newItem = { id: editingId || Date.now(), category: expenseCategory, amount: amt, date: new Date(expenseDate).toISOString() };
-                
-                if (editingId && editingType === 'expense') {
-                    setExpenses(expenses.map(e => e.id === editingId ? newItem : e));
-                    alert('Đã cập nhật chi tiêu!');
-                } else {
-                    setExpenses([newItem, ...expenses]);
-                }
+                const newExpenses = editingId && editingType === 'expense' ? expenses.map(e => e.id === editingId ? newItem : e) : [newItem, ...expenses];
+                saveData(incomes, newExpenses);
+                if(editingId) alert('Đã cập nhật!');
                 resetForm();
             };
-
-            const resetForm = () => {
-                setIncomeSource(''); setIncomeAmount(''); setEditingId(null); setEditingType(null);
-                setExpenseCategory(''); setExpenseAmount(''); 
-            };
-
+            const resetForm = () => { setIncomeSource(''); setIncomeAmount(''); setEditingId(null); setEditingType(null); setExpenseCategory(''); setExpenseAmount(''); };
             const handleEdit = (item, type) => {
-                setEditingId(item.id);
-                setEditingType(type);
-                setActiveTab('add');
-                if (type === 'income') {
-                    setIncomeSource(item.source);
-                    setIncomeAmount(Number(item.amount).toLocaleString('vi-VN'));
-                    setIncomeDate(item.date.split('T')[0]);
-                } else {
-                    setExpenseCategory(item.category);
-                    setExpenseAmount(Number(item.amount).toLocaleString('vi-VN'));
-                    setExpenseDate(item.date.split('T')[0]);
-                }
+                setEditingId(item.id); setEditingType(type); setActiveTab('add');
+                if (type === 'income') { setIncomeSource(item.source); setIncomeAmount(Number(item.amount).toLocaleString('vi-VN')); setIncomeDate(item.date.split('T')[0]); } 
+                else { setExpenseCategory(item.category); setExpenseAmount(Number(item.amount).toLocaleString('vi-VN')); setExpenseDate(item.date.split('T')[0]); }
             };
-
-            const deleteItem = (id, type) => { 
-                if(confirm('Bạn có chắc muốn xóa mục này?')) {
-                    type === 'income' ? setIncomes(incomes.filter(i => i.id !== id)) : setExpenses(expenses.filter(e => e.id !== id)); 
-                }
-            };
+            const deleteItem = (id, type) => { if(confirm('Bạn có chắc muốn xóa?')) { 
+                const newIncomes = type === 'income' ? incomes.filter(i => i.id !== id) : incomes;
+                const newExpenses = type === 'expense' ? expenses.filter(e => e.id !== id) : expenses;
+                saveData(newIncomes, newExpenses);
+            }};
             const applySuggestion = () => { setExpenseAmount(suggestion.toLocaleString('vi-VN')); };
 
-            const handleBackup = () => {
-                const data = { incomes, expenses, version: 1, backupDate: new Date().toISOString() };
-                const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = `Sothuchi_Backup_${new Date().toISOString().slice(0,10)}.json`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                alert('Đã tạo file sao lưu! Hãy chọn "Lưu vào Tệp".');
+            // --- EXPORT EXCEL ---
+            const handleExportExcel = () => {
+                const data = [
+                    ...incomes.map(i => ({ Loại: 'Thu', Mục: i.source, 'Số tiền': i.amount, Ngày: formatDate(i.date) })),
+                    ...expenses.map(e => ({ Loại: 'Chi', Mục: e.category, 'Số tiền': e.amount, Ngày: formatDate(e.date) }))
+                ];
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "ThuChi");
+                XLSX.writeFile(wb, `Sothuchi_${new Date().toISOString().slice(0,10)}.xlsx`);
             };
 
-            const handleRestore = (e) => {
-                const file = e.target.files[0]; if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const data = JSON.parse(event.target.result);
-                        if (data.incomes && data.expenses) {
-                            if(confirm(`Khôi phục dữ liệu ngày ${data.backupDate.slice(0,10)}?`)) {
-                                setIncomes(data.incomes); setExpenses(data.expenses); alert('Thành công!');
-                            }
-                        } else { alert('File lỗi!'); }
-                    } catch (err) { alert('Lỗi đọc file!'); }
-                };
-                reader.readAsText(file); e.target.value = null;
+            // --- HANDLE FIREBASE CONFIG ---
+            const handleSaveConfig = () => {
+                localStorage.setItem('fb_config', firebaseConfigStr);
+                localStorage.setItem('fb_family_code', familyCode);
+                window.location.reload();
+            };
+            const handleDisconnect = () => {
+                if(confirm('Bạn muốn ngắt kết nối? Dữ liệu trên máy sẽ giữ nguyên, nhưng sẽ không đồng bộ nữa.')) {
+                    localStorage.removeItem('fb_config');
+                    localStorage.removeItem('fb_family_code');
+                    window.location.reload();
+                }
             };
 
-            // Totals
-            const totalIncome = filteredIncomes.reduce((a,c)=>a+c.amount,0); // Filtered total for view
-            const totalExpense = filteredExpenses.reduce((a,c)=>a+c.amount,0); // Filtered total for view
-            
-            // Total for Alert (Tính trên toàn bộ tháng hiện tại, không bị ảnh hưởng bởi search filter)
-            const allIncomesInMonth = incomes.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; });
-            const allExpensesInMonth = expenses.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; });
-            const sumIncomeMonth = allIncomesInMonth.reduce((a,c)=>a+c.amount,0);
-            const sumExpenseMonth = allExpensesInMonth.reduce((a,c)=>a+c.amount,0);
-            
+            const sumIncomeMonth = incomes.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; }).reduce((a,c)=>a+c.amount,0);
+            const sumExpenseMonth = expenses.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; }).reduce((a,c)=>a+c.amount,0);
             const balance = sumIncomeMonth - sumExpenseMonth;
             const isOverBudget = sumIncomeMonth > 0 && (sumExpenseMonth / sumIncomeMonth) > 0.9;
 
             return (
                 <div className="min-h-screen pb-24 md:pb-0 relative font-sans">
                     <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative">
+                        {isOverBudget && <div className="bg-red-50 text-red-600 px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 animate-pulse-red border-b border-red-100"><AlertTriangle size={16} /> CẢNH BÁO: Đã chi tiêu quá 90% thu nhập!</div>}
                         
-                        {/* BUDGET ALERT */}
-                        {isOverBudget && (
-                            <div className="bg-red-50 text-red-600 px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 animate-pulse-red border-b border-red-100">
-                                <AlertTriangle size={16} /> CẢNH BÁO: Đã chi tiêu quá 90% thu nhập!
-                            </div>
-                        )}
-
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-6 pb-8 text-white rounded-b-3xl shadow-lg">
+                        <div className={`bg-gradient-to-r ${isConnected ? 'from-blue-800 to-indigo-900' : 'from-slate-700 to-gray-800'} p-6 pb-8 text-white rounded-b-3xl shadow-lg transition-colors duration-500`}>
                             <div className="flex items-center justify-between mb-4">
-                                <button onClick={()=>setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 15))} className="p-2 text-gray-300 hover:text-white transition-colors"><ChevronLeft size={24}/></button>
+                                <button onClick={()=>setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 15))} className="p-2 text-white/70 hover:text-white"><ChevronLeft size={24}/></button>
                                 <div className="text-center">
-                                    <span className="text-[10px] font-medium text-gray-400 block mb-0.5 tracking-wider">
-                                        {formatDate(startDate)} - {formatDate(endDate)}
-                                    </span>
-                                    <div className="font-bold text-xl text-white flex items-center gap-2 justify-center uppercase tracking-wide">
-                                        <CalendarIcon size={18} className="text-blue-200"/> 
-                                        Tháng {viewDate.getMonth() + 1}/{viewDate.getFullYear()}
-                                    </div>
+                                    <span className="text-[10px] font-medium text-white/60 block mb-0.5 tracking-wider">{formatDate(startDate)} - {formatDate(endDate)}</span>
+                                    <div className="font-bold text-xl text-white flex items-center gap-2 justify-center uppercase tracking-wide"><CalendarIcon size={18} className="text-blue-200"/> Tháng {viewDate.getMonth() + 1}/{viewDate.getFullYear()}</div>
                                 </div>
-                                <button onClick={()=>setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 15))} className="p-2 text-gray-300 hover:text-white transition-colors"><ChevronRight size={24}/></button>
+                                <button onClick={()=>setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth()+1, 15))} className="p-2 text-white/70 hover:text-white"><ChevronRight size={24}/></button>
                             </div>
                             <div className="grid grid-cols-2 gap-4 mt-2">
-                                <div className="bg-green-500/20 backdrop-blur-sm p-4 rounded-2xl border border-green-500/30">
-                                    <div className="flex items-center gap-1.5 text-green-300 text-xs font-bold uppercase mb-1"><TrendingUp size={14}/> Tổng thu</div>
-                                    <div className="font-bold text-lg text-green-50">{formatCurrency(sumIncomeMonth)} VNĐ</div>
-                                </div>
-                                <div className="bg-red-500/20 backdrop-blur-sm p-4 rounded-2xl border border-red-500/30">
-                                    <div className="flex items-center gap-1.5 text-red-300 text-xs font-bold uppercase mb-1"><TrendingDown size={14}/> Tổng chi</div>
-                                    <div className="font-bold text-lg text-red-50">{formatCurrency(sumExpenseMonth)} VNĐ</div>
-                                </div>
+                                <div className="bg-green-500/20 backdrop-blur-sm p-4 rounded-2xl border border-green-500/30"><div className="flex items-center gap-1.5 text-green-300 text-xs font-bold uppercase mb-1"><TrendingUp size={14}/> Tổng thu</div><div className="font-bold text-lg text-green-50">{formatCurrency(sumIncomeMonth)} VNĐ</div></div>
+                                <div className="bg-red-500/20 backdrop-blur-sm p-4 rounded-2xl border border-red-500/30"><div className="flex items-center gap-1.5 text-red-300 text-xs font-bold uppercase mb-1"><TrendingDown size={14}/> Tổng chi</div><div className="font-bold text-lg text-red-50">{formatCurrency(sumExpenseMonth)} VNĐ</div></div>
+                            </div>
+                            {/* Connection Status */}
+                            <div className="absolute top-4 right-4">
+                                {isConnected ? 
+                                    <div className="flex items-center gap-1 text-[10px] bg-green-500/20 px-2 py-1 rounded-full border border-green-500/30 text-green-300">
+                                        {isSyncing ? <div className="loader w-3 h-3 border-green-300 border-t-transparent"></div> : <Cloud size={12}/>} Online
+                                    </div> : 
+                                    <div className="flex items-center gap-1 text-[10px] bg-gray-500/40 px-2 py-1 rounded-full border border-gray-500/30 text-gray-300"><CloudOff size={12}/> Offline</div>
+                                }
                             </div>
                         </div>
 
-                        {/* Tabs */}
                         <div className="px-4 -mt-6 relative z-10">
                             <div className="bg-white rounded-xl shadow-xl p-1.5 flex border border-gray-100">
                                 {['add', 'report', 'history', 'settings'].map(tab => (
@@ -311,61 +312,25 @@
                             </div>
                         </div>
 
-                        {/* Content */}
                         <div className="p-4 pb-32">
                             {activeTab === 'add' && (
                                 <div className="space-y-6 animate-fadeIn mt-2">
-                                    {/* Edit Warning */}
-                                    {editingId && (
-                                        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between">
-                                            <span className="font-bold flex items-center gap-2"><Edit2 size={16}/> Đang sửa {editingType === 'income' ? 'thu nhập' : 'chi tiêu'}</span>
-                                            <button onClick={resetForm} className="bg-white p-1 rounded-full border border-yellow-300 text-yellow-600"><X size={14}/></button>
-                                        </div>
-                                    )}
-
-                                    <div className={`bg-white border border-green-100 rounded-2xl p-4 shadow-sm relative overflow-hidden transition-all ${editingId && editingType === 'expense' ? 'opacity-50 pointer-events-none' : ''}`}>
-                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>
-                                        <div className="flex items-center gap-2 text-green-700 font-bold mb-3"><TrendingUp size={18}/> 1. Thu Nhập</div>
+                                    {editingId && <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between"><span className="font-bold flex items-center gap-2"><Edit2 size={16}/> Đang sửa {editingType==='income'?'thu nhập':'chi tiêu'}</span><button onClick={resetForm} className="bg-white p-1 rounded-full border border-yellow-300 text-yellow-600"><X size={14}/></button></div>}
+                                    <div className={`bg-white border border-green-100 rounded-2xl p-4 shadow-sm relative overflow-hidden ${editingId && editingType === 'expense' ? 'opacity-50 pointer-events-none' : ''}`}>
+                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div><div className="flex items-center gap-2 text-green-700 font-bold mb-3"><TrendingUp size={18}/> 1. Thu Nhập</div>
                                         <div className="space-y-3 pl-2">
                                             <input type="text" placeholder="Lương tháng..." value={incomeSource} onChange={e=>setIncomeSource(e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl font-medium"/>
-                                            <div className="flex gap-2">
-                                                <input type="text" inputMode="numeric" placeholder="0" value={incomeAmount} onChange={e=>handleAmountInput(e.target.value, setIncomeAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg"/>
-                                                <CustomDatePicker value={incomeDate} onChange={e=>setIncomeDate(e.target.value)} />
-                                            </div>
-                                            <button onClick={handleAddIncome} disabled={!incomeSource || !incomeAmount} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-200 flex justify-center items-center gap-2">
-                                                {editingId && editingType === 'income' ? 'Cập Nhật Thu Nhập' : <><Plus size={18}/> Thêm</>}
-                                            </button>
+                                            <div className="flex gap-2"><input type="text" inputMode="numeric" placeholder="0" value={incomeAmount} onChange={e=>handleAmountInput(e.target.value, setIncomeAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg"/><CustomDatePicker value={incomeDate} onChange={e=>setIncomeDate(e.target.value)} /></div>
+                                            <button onClick={handleAddIncome} disabled={!incomeSource || !incomeAmount} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-200 flex justify-center items-center gap-2">{editingId && editingType === 'income' ? 'Cập Nhật' : <><Plus size={18}/> Thêm</>}</button>
                                         </div>
                                     </div>
-                                    
-                                    <div className={`bg-white border border-red-100 rounded-2xl p-4 shadow-sm relative overflow-hidden transition-all ${editingId && editingType === 'income' ? 'opacity-50 pointer-events-none' : ''}`}>
-                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
-                                        <div className="flex items-center gap-2 text-red-700 font-bold mb-3"><TrendingDown size={18}/> 2. Chi Tiêu</div>
+                                    <div className={`bg-white border border-red-100 rounded-2xl p-4 shadow-sm relative overflow-hidden ${editingId && editingType === 'income' ? 'opacity-50 pointer-events-none' : ''}`}>
+                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div><div className="flex items-center gap-2 text-red-700 font-bold mb-3"><TrendingDown size={18}/> 2. Chi Tiêu</div>
                                         <div className="space-y-4 pl-2">
-                                            <div>
-                                                <label className="text-xs text-gray-400 font-bold uppercase mb-2 block">Chọn mục chi:</label>
-                                                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
-                                                    {FIXED_CATEGORIES.map(cat => (
-                                                        <button key={cat} onClick={()=>setExpenseCategory(cat)} className={`p-2 text-[10px] font-bold rounded-lg border transition-all truncate ${expenseCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-100' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{cat}</button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            
-                                            {suggestion > 0 && !editingId && (
-                                                <div onClick={applySuggestion} className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2 cursor-pointer hover:bg-blue-100 transition-colors animate-fadeIn">
-                                                    <Lightbulb size={14} className="text-yellow-500 fill-yellow-500"/>
-                                                    <span>Trung bình gần đây: <strong>{formatCurrency(suggestion)} VNĐ</strong></span>
-                                                    <span className="ml-auto text-[10px] bg-blue-200 px-2 py-0.5 rounded text-blue-800 font-bold">Dùng luôn</span>
-                                                </div>
-                                            )}
-
-                                            <div className="flex gap-2 pt-2 border-t border-gray-100">
-                                                <input type="text" inputMode="numeric" placeholder="Số tiền..." value={expenseAmount} onChange={e=>handleAmountInput(e.target.value, setExpenseAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg"/>
-                                                <CustomDatePicker value={expenseDate} onChange={e=>setExpenseDate(e.target.value)} />
-                                            </div>
-                                            <button onClick={handleAddExpense} disabled={!expenseCategory || !expenseAmount} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 flex justify-center items-center gap-2">
-                                                {editingId && editingType === 'expense' ? 'Cập Nhật Chi Tiêu' : <><Save size={18}/> Lưu Chi</>}
-                                            </button>
+                                            <div><label className="text-xs text-gray-400 font-bold uppercase mb-2 block">Chọn mục chi:</label><div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">{FIXED_CATEGORIES.map(cat => <button key={cat} onClick={()=>setExpenseCategory(cat)} className={`p-2 text-[10px] font-bold rounded-lg border transition-all truncate ${expenseCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-100' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{cat}</button>)}</div></div>
+                                            {suggestion > 0 && !editingId && <div onClick={applySuggestion} className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2 cursor-pointer hover:bg-blue-100 animate-fadeIn"><Lightbulb size={14} className="text-yellow-500 fill-yellow-500"/><span>Trung bình gần đây: <strong>{formatCurrency(suggestion)} VNĐ</strong></span><span className="ml-auto text-[10px] bg-blue-200 px-2 py-0.5 rounded text-blue-800 font-bold">Dùng luôn</span></div>}
+                                            <div className="flex gap-2 pt-2 border-t border-gray-100"><input type="text" inputMode="numeric" placeholder="Số tiền..." value={expenseAmount} onChange={e=>handleAmountInput(e.target.value, setExpenseAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg"/><CustomDatePicker value={expenseDate} onChange={e=>setExpenseDate(e.target.value)} /></div>
+                                            <button onClick={handleAddExpense} disabled={!expenseCategory || !expenseAmount} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 flex justify-center items-center gap-2">{editingId && editingType === 'expense' ? 'Cập Nhật' : <><Save size={18}/> Lưu Chi</>}</button>
                                         </div>
                                     </div>
                                 </div>
@@ -401,31 +366,11 @@
                                                 <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2"><History size={16}/> Lịch sử & Tìm kiếm</h3>
                                                 <span className="text-[10px] bg-white border px-2 py-1 rounded text-gray-500 font-medium">{filteredIncomes.length + filteredExpenses.length} bản ghi</span>
                                             </div>
-                                            
-                                            {/* SEARCH & FILTER UI */}
                                             <div className="flex gap-2">
-                                                <div className="relative flex-1">
-                                                    <Search size={14} className="absolute left-3 top-3 text-gray-400" />
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="Tìm món, số tiền..." 
-                                                        value={searchTerm}
-                                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                                        className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-100 outline-none"
-                                                    />
-                                                </div>
-                                                <select 
-                                                    value={filterCategory} 
-                                                    onChange={(e) => setFilterCategory(e.target.value)}
-                                                    className="pl-2 pr-6 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 outline-none truncate max-w-[100px]"
-                                                >
-                                                    <option value="all">Tất cả</option>
-                                                    <option value="income_type">Thu nhập</option>
-                                                    {FIXED_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                </select>
+                                                <div className="relative flex-1"><Search size={14} className="absolute left-3 top-3 text-gray-400" /><input type="text" placeholder="Nhập Thu/Chi muốn tìm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-100 outline-none"/></div>
+                                                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="pl-2 pr-6 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 outline-none truncate max-w-[100px]"><option value="all">Tất cả</option><option value="income_type">Thu nhập</option>{availableFilterCategories.map(c => <option key={c} value={c}>{c}</option>)}</select>
                                             </div>
                                         </div>
-
                                         <div className="max-h-[60vh] overflow-y-auto">
                                             {[...filteredIncomes.map(i=>({...i,type:'income'})), ...filteredExpenses.map(e=>({...e,type:'expense'}))].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((item,idx) => (
                                                 <div key={item.id} className={`p-4 flex justify-between items-center hover:bg-gray-50 transition-colors ${idx!==0?'border-t border-gray-50':''}`}>
@@ -435,10 +380,7 @@
                                                     </div>
                                                     <div className="text-right">
                                                         <p className={`font-bold text-sm ${item.type==='income'?'text-green-600':'text-red-600'}`}>{item.type==='income'?'+':'-'}{formatCurrency(item.amount)} VNĐ</p>
-                                                        <div className="flex items-center justify-end gap-3 mt-1.5">
-                                                            <button onClick={()=>handleEdit(item, item.type)} className="text-[10px] text-gray-400 hover:text-blue-600 font-bold flex items-center gap-1"><Edit2 size={10}/> Sửa</button>
-                                                            <button onClick={()=>deleteItem(item.id, item.type)} className="text-[10px] text-gray-400 hover:text-red-500 font-bold flex items-center gap-1"><Trash2 size={10}/> Xóa</button>
-                                                        </div>
+                                                        <div className="flex items-center justify-end gap-3 mt-1.5"><button onClick={()=>handleEdit(item, item.type)} className="text-[10px] text-gray-400 hover:text-blue-600 font-bold flex items-center gap-1"><Edit2 size={10}/> Sửa</button><button onClick={()=>deleteItem(item.id, item.type)} className="text-[10px] text-gray-400 hover:text-red-500 font-bold flex items-center gap-1"><Trash2 size={10}/> Xóa</button></div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -452,25 +394,46 @@
                                 <div className="space-y-6 animate-fadeIn mt-2">
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                         <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2"><Settings className="text-slate-600" size={20}/> Cài đặt & Dữ liệu</h3>
-                                        <div className="space-y-4">
-                                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                                <h4 className="font-bold text-blue-800 text-sm mb-1">1. Sao lưu dữ liệu</h4>
-                                                <p className="text-xs text-blue-600 mb-3">Tải file về máy, sau đó bạn có thể lưu lên Google Drive/iCloud để tránh mất dữ liệu.</p>
-                                                <button onClick={handleBackup} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 transition-all"><Download size={18}/> Tải file Backup (.json)</button>
-                                            </div>
-                                            <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
-                                                <h4 className="font-bold text-orange-800 text-sm mb-1">2. Khôi phục dữ liệu</h4>
-                                                <p className="text-xs text-orange-600 mb-3">Chọn file .json đã sao lưu trước đó để nạp lại dữ liệu vào ứng dụng.</p>
-                                                <input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" />
-                                                <button onClick={() => fileInputRef.current.click()} className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 transition-all"><Upload size={18}/> Chọn file để Khôi phục</button>
-                                            </div>
+                                        
+                                        {/* CLOUD CONNECT SECTION */}
+                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                            <h4 className="font-bold text-blue-800 text-sm mb-2 flex items-center gap-2"><Cloud size={16}/> 1. Đồng bộ Đám mây (Online)</h4>
+                                            
+                                            {isConnected ? (
+                                                <div className="space-y-3">
+                                                    <div className="bg-white p-3 rounded-lg border border-blue-200">
+                                                        <p className="text-xs text-gray-500 uppercase font-bold">Đang kết nối tới:</p>
+                                                        <p className="text-sm font-bold text-blue-600 mt-1">{familyCode}</p>
+                                                    </div>
+                                                    <button onClick={handleDisconnect} className="w-full py-2 bg-white text-red-500 border border-red-200 font-bold rounded-lg text-xs hover:bg-red-50">Ngắt kết nối</button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    <p className="text-xs text-blue-600 leading-relaxed">Nhập cấu hình Firebase và Mã gia đình để đồng bộ dữ liệu giữa nhiều máy.</p>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Mã Gia Đình (Tự tạo, vd: NHA-TOI-123)</label>
+                                                        <input type="text" value={familyCode} onChange={e=>setFamilyCode(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-sm bg-white" placeholder="Ví dụ: GD-123456" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Cấu hình Firebase (JSON)</label>
+                                                        <textarea value={firebaseConfigStr} onChange={e=>setFirebaseConfigStr(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-[10px] h-20 bg-white font-mono" placeholder='{"apiKey": "...", "authDomain": "..."}'></textarea>
+                                                    </div>
+                                                    <button onClick={handleSaveConfig} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all text-xs">KẾT NỐI NGAY</button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* EXCEL EXPORT SECTION */}
+                                        <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                                            <h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 2. Xuất báo cáo Excel</h4>
+                                            <p className="text-xs text-green-600 mb-3">Tải file Excel (.xlsx) để xem trên máy tính hoặc in ấn.</p>
+                                            <button onClick={handleExportExcel} className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 transition-all text-xs"><Download size={16}/> Tải file Excel</button>
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Floating Bubble */}
                         <div onClick={()=>setShowReloadConfirm(true)} className={`fixed bottom-8 right-4 z-50 flex flex-col items-center gap-1 cursor-pointer transition-all duration-300 ${balance===0?'opacity-80':'opacity-100'}`}>
                             <div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm border border-white/10">Tổng Tiền Còn Lại</div>
                             <div className={`shadow-2xl rounded-full px-5 py-3 flex items-center gap-3 border-2 border-white/20 backdrop-blur-lg transform hover:scale-105 active:scale-95 transition-all ${balance>=0?'bg-gradient-to-r from-blue-600 to-cyan-500':'bg-gradient-to-r from-red-600 to-orange-500'}`}>
@@ -479,16 +442,12 @@
                             </div>
                         </div>
 
-                        {/* Reload Confirm */}
                         {showReloadConfirm && (
                             <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
                                 <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-xs w-full text-center border border-gray-100">
                                     <div className="bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600"><RefreshCw size={24} /></div>
                                     <h3 className="font-bold text-lg text-slate-800 mb-2">Tải lại ứng dụng?</h3>
-                                    <div className="flex gap-3 mt-6">
-                                        <button onClick={()=>setShowReloadConfirm(false)} className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-100 rounded-xl">Hủy</button>
-                                        <button onClick={()=>window.location.reload()} className="flex-1 py-3 text-sm font-bold text-white bg-blue-600 rounded-xl shadow-lg">Đồng ý</button>
-                                    </div>
+                                    <div className="flex gap-3 mt-6"><button onClick={()=>setShowReloadConfirm(false)} className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-100 rounded-xl">Hủy</button><button onClick={()=>window.location.reload()} className="flex-1 py-3 text-sm font-bold text-white bg-blue-600 rounded-xl shadow-lg">Đồng ý</button></div>
                                 </div>
                             </div>
                         )}
@@ -502,3 +461,23 @@
     </script>
 </body>
 </html>
+
+📝 Hướng dẫn Lấy "Chìa khóa" Firebase (Làm 1 lần duy nhất)
+Bạn cần thực hiện bước này trên máy tính cho dễ, sau đó copy mã vào điện thoại.
+ * Truy cập: console.firebase.google.com (Đăng nhập bằng Gmail).
+ * Bấm "Create a project" (hoặc "Add project"). Đặt tên tùy ý (ví dụ: sothuchi), bấm Continue -> Tắt Google Analytics -> Create.
+ * Khi tạo xong, bấm vào icon Web (</>) hình tròn màu trắng.
+   * Đặt tên App: web -> Bấm Register app.
+ * Nó sẽ hiện ra một đoạn mã. Bạn hãy tìm và chỉ copy phần trong ngoặc nhọn { ... } giống như này:
+   {
+  "apiKey": "AIzaSyD...",
+  "authDomain": "...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}
+
+
+
+
