@@ -44,6 +44,23 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
+        // --- DANH SÁCH MỤC CHI TIÊU CỐ ĐỊNH (CẬP NHẬT) ---
+        const FIXED_CATEGORIES = [
+            "Wi-Fi & Điện", 
+            "Ăn & Uống", 
+            "Cưới hỏi & Ma chay", 
+            "Bỉm cho Con", 
+            "Sữa cho Con", 
+            "Xăng xe", 
+            "Rác thải sinh hoạt", 
+            "Nhu Yếu Phẩm", 
+            "Đồ dùng Y Tế", 
+            "Tiền Tiết Kiệm", 
+            "Tiền Cá Nhân", 
+            "Nợ", 
+            "Mua Sắm"
+        ];
+
         // --- ICONS ---
         const IconBase = ({ size = 24, className = "", children }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -90,7 +107,6 @@
             const [expenseCategory, setExpenseCategory] = useState('');
             const [expenseAmount, setExpenseAmount] = useState('');
             const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
-            const [isNewCategory, setIsNewCategory] = useState(false);
             const [activeTab, setActiveTab] = useState('add');
 
             // Modal State
@@ -124,8 +140,7 @@
                 const d = new Date(date);
                 return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
             };
-            const getUniqueCategories = () => Array.from(new Set(expenses.map(e => e.category)));
-
+            
             const handleAmountInput = (value, setter) => {
                 const rawValue = value.replace(/\D/g, '');
                 if (rawValue === '') { setter(''); return; }
@@ -145,7 +160,7 @@
                 const amount = parseAmount(expenseAmount);
                 if (!expenseCategory || amount <= 0) return;
                 setExpenses([{ id: Date.now(), category: expenseCategory, amount, date: new Date(expenseDate).toISOString() }, ...expenses]);
-                setExpenseCategory(''); setExpenseAmount(''); setIsNewCategory(false);
+                setExpenseCategory(''); setExpenseAmount(''); 
             };
 
             const deleteItem = (id, type) => {
@@ -226,28 +241,32 @@
                                             <button onClick={handleAddIncome} disabled={!incomeSource || !incomeAmount} className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg shadow-green-200 transition-all flex justify-center items-center gap-2"><Plus size={18}/> Thêm</button>
                                         </div>
                                     </div>
-                                    {/* Chi Tiêu */}
+                                    
+                                    {/* Chi Tiêu (DẠNG LƯỚI 3 CỘT) */}
                                     <div className="bg-white border border-red-100 rounded-2xl p-4 shadow-sm relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
                                         <div className="flex items-center gap-2 text-red-700 font-bold mb-3"><TrendingDown size={18}/> 2. Khoản chi tiêu</div>
-                                        <div className="mb-3 pl-2">
-                                            {!isNewCategory && getUniqueCategories().length > 0 ? (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {getUniqueCategories().map(cat => (
-                                                        <button key={cat} onClick={() => setExpenseCategory(cat)} className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all border ${expenseCategory === cat ? 'bg-red-500 text-white border-red-500 shadow-md transform scale-105' : 'bg-white text-gray-500 border-gray-200 hover:border-red-300'}`}>{cat}</button>
+                                        
+                                        <div className="space-y-4 pl-2">
+                                            {/* Phần chọn danh mục có sẵn - LƯỚI 3 CỘT */}
+                                            <div>
+                                                <label className="text-xs text-gray-400 font-bold uppercase mb-2 block">Chọn mục chi:</label>
+                                                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
+                                                    {FIXED_CATEGORIES.map(cat => (
+                                                        <button 
+                                                            key={cat}
+                                                            onClick={() => setExpenseCategory(cat)}
+                                                            className={`p-2 text-[10px] font-bold rounded-lg border transition-all truncate ${expenseCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-100' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                                                            title={cat}
+                                                        >
+                                                            {cat}
+                                                        </button>
                                                     ))}
-                                                    <button onClick={() => { setIsNewCategory(true); setExpenseCategory(''); }} className="px-3 py-1.5 text-xs font-bold border border-dashed border-gray-400 text-gray-500 rounded-lg hover:bg-gray-50">+ Mới</button>
                                                 </div>
-                                            ) : (
-                                                <div className="flex gap-2 animate-fadeIn">
-                                                    <input type="text" placeholder="Nhập tên mục (Bỉm, Sữa...)" value={expenseCategory} onChange={e => setExpenseCategory(e.target.value)} autoFocus className="flex-1 p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-red-100 font-medium" />
-                                                    {getUniqueCategories().length > 0 && <button onClick={() => setIsNewCategory(false)} className="px-3 text-xs text-red-500 font-bold">Hủy</button>}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="space-y-3 pl-2">
-                                            <div className="flex gap-2">
-                                                <input type="text" inputMode="numeric" placeholder="0" value={expenseAmount} onChange={e => handleAmountInput(e.target.value, setExpenseAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-red-100 font-bold text-gray-700 text-lg" />
+                                            </div>
+
+                                            <div className="flex gap-2 pt-2 border-t border-gray-100">
+                                                <input type="text" inputMode="numeric" placeholder="Nhập số tiền..." value={expenseAmount} onChange={e => handleAmountInput(e.target.value, setExpenseAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-red-100 font-bold text-gray-700 text-lg" />
                                                 <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="w-36 p-3 bg-gray-50 border-none rounded-xl text-sm font-medium text-gray-500" />
                                             </div>
                                             <button onClick={handleAddExpense} disabled={!expenseCategory || !expenseAmount} className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200 transition-all flex justify-center items-center gap-2"><Save size={18}/> Lưu Chi</button>
@@ -267,7 +286,6 @@
                                                 {Object.entries(filteredExpenses.reduce((acc, curr) => { acc[curr.category] = (acc[curr.category] || 0) + curr.amount; return acc; }, {}))
                                                     .sort(([, a], [, b]) => b - a)
                                                     .map(([category, amount]) => {
-                                                        // TÍNH PHẦN TRĂM DỰA TRÊN TỔNG THU NHẬP
                                                         const percentage = totalIncome > 0 ? Math.round((amount / totalIncome) * 100) : 0;
                                                         return (
                                                             <div key={category} className="group">
