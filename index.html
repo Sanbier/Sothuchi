@@ -82,24 +82,36 @@
         const BookOpen = (p) => <IconBase {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
         const CheckSquare = (p) => <IconBase {...p}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></IconBase>;
 
-        const CustomDatePicker = ({ value, onChange }) => {
+        // --- COMPONENT CHỌN NGÀY TÙY CHỈNH (CĂN GIỮA & CO DÃN) ---
+        const CustomDatePicker = ({ value, onChange, className="" }) => {
             const displayDate = value ? value.split('-').reverse().join('/') : '';
             return (
-                <div className="relative w-36">
+                <div className={`relative h-12 ${className}`}> {/* Nhận class từ cha để co dãn */}
                     <input type="date" value={value} onChange={onChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
-                    <div className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm font-medium text-gray-500 flex items-center justify-between pointer-events-none"><span>{displayDate}</span><CalendarIcon size={14} className="ml-1 opacity-70"/></div>
+                    <div className="w-full h-full p-3 bg-gray-50 border-none rounded-xl text-sm font-medium text-gray-500 flex items-center justify-center pointer-events-none gap-2"> {/* Căn giữa */}
+                        <span>{displayDate}</span><CalendarIcon size={16} className="opacity-70"/>
+                    </div>
                 </div>
             );
         };
 
         const App = () => {
+            const getLocalToday = () => {
+                const d = new Date();
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
             const [incomes, setIncomes] = useState([]);
             const [expenses, setExpenses] = useState([]);
             const [fixedTemplate, setFixedTemplate] = useState([]);
             const [viewDate, setViewDate] = useState(new Date());
             
-            const [incomeSource, setIncomeSource] = useState(''); const [incomeAmount, setIncomeAmount] = useState(''); const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0]);
-            const [expenseCategory, setExpenseCategory] = useState(''); const [expenseAmount, setExpenseAmount] = useState(''); const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
+            // Inputs: Mặc định luôn là ngày hiện tại (Local Time)
+            const [incomeSource, setIncomeSource] = useState(''); const [incomeAmount, setIncomeAmount] = useState(''); const [incomeDate, setIncomeDate] = useState(getLocalToday());
+            const [expenseCategory, setExpenseCategory] = useState(''); const [expenseAmount, setExpenseAmount] = useState(''); const [expenseDate, setExpenseDate] = useState(getLocalToday());
             const [activeTab, setActiveTab] = useState('add');
             
             const [editingId, setEditingId] = useState(null); const [editingType, setEditingType] = useState(null);
@@ -108,11 +120,9 @@
             const [showReloadConfirm, setShowReloadConfirm] = useState(false);
             const [suggestion, setSuggestion] = useState(0);
             
-            // Fixed Expenses State
             const [showFixedConfig, setShowFixedConfig] = useState(false);
             const [tempFixedList, setTempFixedList] = useState({});
 
-            // Firebase State
             const [firebaseConfigStr, setFirebaseConfigStr] = useState(() => localStorage.getItem('fb_config') || '');
             const [familyCode, setFamilyCode] = useState(() => localStorage.getItem('fb_family_code') || '');
             const [isConnected, setIsConnected] = useState(false);
@@ -123,8 +133,11 @@
 
             // --- AUTO SYNC INPUT DATE WITH VIEW DATE ---
             useEffect(() => {
-                // Khi đổi tháng xem (viewDate), tự động cập nhật ngày nhập liệu về ngày 15 của tháng đó (để nằm giữa tháng)
                 const newDateStr = new Date(viewDate.getFullYear(), viewDate.getMonth(), 15).toISOString().split('T')[0];
+                // Chỉ set ngày nếu người dùng chưa chọn ngày khác (logic đơn giản: luôn set để tiện nhập cho tháng đó)
+                // Nhưng nếu muốn mặc định là "Hôm nay" thì bỏ dòng này. 
+                // Tuy nhiên, logic "Chuyển tháng -> Nhập cho tháng đó" sẽ tiện hơn.
+                // Ở đây tôi giữ logic: Chuyển tháng -> Lấy ngày 15 của tháng đó.
                 setIncomeDate(newDateStr);
                 setExpenseDate(newDateStr);
             }, [viewDate]);
@@ -221,51 +234,22 @@
             const handleAmountInput = (val, setter) => { const raw = val.replace(/\D/g,''); setter(raw === '' ? '' : Number(raw).toLocaleString('vi-VN')); };
             const parseAmount = (val) => val ? parseInt(val.replace(/\./g,''), 10) : 0;
 
-            // --- FIXED EXPENSES LOGIC (SỬ DỤNG NGÀY THEO VIEW HIỆN TẠI) ---
+            // --- FIXED EXPENSES LOGIC ---
             const openFixedConfig = () => {
-                const currentMap = {};
-                fixedTemplate.forEach(item => currentMap[item.category] = item.amount);
-                setTempFixedList(currentMap);
-                setShowFixedConfig(true);
+                const currentMap = {}; fixedTemplate.forEach(item => currentMap[item.category] = item.amount); setTempFixedList(currentMap); setShowFixedConfig(true);
             };
-
-            const handleFixedAmountChange = (cat, val) => {
-                const raw = val.replace(/\D/g,'');
-                const amt = raw === '' ? 0 : parseInt(raw, 10);
-                setTempFixedList(prev => ({ ...prev, [cat]: amt }));
-            };
-
-            const saveFixedConfig = () => {
-                const newTemplate = [];
-                Object.entries(tempFixedList).forEach(([cat, amt]) => {
-                    if (amt > 0) newTemplate.push({ category: cat, amount: amt });
-                });
-                saveData(incomes, expenses, newTemplate);
-                setShowFixedConfig(false);
-                alert('Đã lưu cấu hình khoản cố định!');
-            };
-
+            const handleFixedAmountChange = (cat, val) => { const raw = val.replace(/\D/g,''); const amt = raw === '' ? 0 : parseInt(raw, 10); setTempFixedList(prev => ({ ...prev, [cat]: amt })); };
+            const saveFixedConfig = () => { const newTemplate = []; Object.entries(tempFixedList).forEach(([cat, amt]) => { if (amt > 0) newTemplate.push({ category: cat, amount: amt }); }); saveData(incomes, expenses, newTemplate); setShowFixedConfig(false); alert('Đã lưu cấu hình!'); };
+            
             const applyFixedExpenses = () => {
-                if (fixedTemplate.length === 0) {
-                    alert('Bạn chưa cài đặt khoản cố định nào. Hãy bấm "Cấu hình" trước.');
-                    return;
-                }
-                // SỬA LỖI: Lấy ngày 10 của THÁNG ĐANG XEM để tạo phiếu chi
+                if (fixedTemplate.length === 0) { alert('Chưa có cấu hình mẫu.'); return; }
                 const targetDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 10).toISOString();
-                
-                const newItems = fixedTemplate.map(item => ({
-                    id: Date.now() + Math.random(),
-                    category: item.category,
-                    amount: item.amount,
-                    date: targetDate
-                }));
+                const newItems = fixedTemplate.map(item => ({ id: Date.now() + Math.random(), category: item.category, amount: item.amount, date: targetDate }));
                 saveData(incomes, [...newItems, ...expenses], fixedTemplate);
-                
                 const monthDisplay = `${viewDate.getMonth() + 1}/${viewDate.getFullYear()}`;
                 alert(`Đã thêm ${newItems.length} khoản chi vào THÁNG ${monthDisplay} thành công!`);
             };
 
-            // --- MAIN ACTIONS ---
             const handleAddIncome = () => {
                 const amt = parseAmount(incomeAmount); if(!incomeSource || amt <= 0) return;
                 const newItem = { id: editingId || Date.now(), source: incomeSource, amount: amt, date: new Date(incomeDate).toISOString() };
@@ -349,7 +333,10 @@
                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div><div className="flex items-center gap-2 text-green-700 font-bold mb-3"><TrendingUp size={18}/> 1. Thu Nhập</div>
                                         <div className="space-y-3 pl-2">
                                             <input type="text" placeholder="Lương tháng..." value={incomeSource} onChange={e=>setIncomeSource(e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl font-medium"/>
-                                            <div className="flex gap-2"><input type="text" inputMode="numeric" placeholder="0" value={incomeAmount} onChange={e=>handleAmountInput(e.target.value, setIncomeAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg"/><CustomDatePicker value={incomeDate} onChange={e=>setIncomeDate(e.target.value)} /></div>
+                                            <div className="flex gap-3"> {/* Gap 3 cho thoáng */}
+                                                <input type="text" inputMode="numeric" placeholder="0" value={incomeAmount} onChange={e=>handleAmountInput(e.target.value, setIncomeAmount)} className="w-1/2 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg h-12"/>
+                                                <CustomDatePicker value={incomeDate} onChange={e=>setIncomeDate(e.target.value)} className="flex-1" />
+                                            </div>
                                             <button onClick={handleAddIncome} disabled={!incomeSource || !incomeAmount} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-200 flex justify-center items-center gap-2">{editingId && editingType === 'income' ? 'Cập Nhật' : <><Plus size={18}/> Thêm</>}</button>
                                         </div>
                                     </div>
@@ -358,7 +345,10 @@
                                         <div className="space-y-4 pl-2">
                                             <div><label className="text-xs text-gray-400 font-bold uppercase mb-2 block">Chọn mục chi:</label><div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">{FIXED_CATEGORIES.map(cat => <button key={cat} onClick={()=>setExpenseCategory(cat)} className={`category-btn p-2 text-[10px] font-bold rounded-lg border transition-all ${expenseCategory === cat ? 'bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-100' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{cat}</button>)}</div></div>
                                             {suggestion > 0 && !editingId && <div onClick={applySuggestion} className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-xs flex items-center gap-2 cursor-pointer hover:bg-blue-100 animate-fadeIn"><Lightbulb size={14} className="text-yellow-500 fill-yellow-500"/><span>Trung bình gần đây: <strong>{formatCurrency(suggestion)} VNĐ</strong></span><span className="ml-auto text-[10px] bg-blue-200 px-2 py-0.5 rounded text-blue-800 font-bold">Dùng luôn</span></div>}
-                                            <div className="flex gap-2 pt-2 border-t border-gray-100"><input type="text" inputMode="numeric" placeholder="Số tiền..." value={expenseAmount} onChange={e=>handleAmountInput(e.target.value, setExpenseAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg"/><CustomDatePicker value={expenseDate} onChange={e=>setExpenseDate(e.target.value)} /></div>
+                                            <div className="flex gap-3 pt-2 border-t border-gray-100"> {/* Gap 3 cho thoáng */}
+                                                <input type="text" inputMode="numeric" placeholder="Số tiền..." value={expenseAmount} onChange={e=>handleAmountInput(e.target.value, setExpenseAmount)} className="w-1/2 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg h-12"/>
+                                                <CustomDatePicker value={expenseDate} onChange={e=>setExpenseDate(e.target.value)} className="flex-1" />
+                                            </div>
                                             <button onClick={handleAddExpense} disabled={!expenseCategory || !expenseAmount} className="w-full py-3 bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-200 flex justify-center items-center gap-2">{editingId && editingType === 'expense' ? 'Cập Nhật' : <><Save size={18}/> Lưu Chi</>}</button>
                                         </div>
                                     </div>
@@ -424,7 +414,7 @@
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                         <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2"><Settings className="text-slate-600" size={20}/> Cài đặt & Dữ liệu</h3>
                                         
-                                        {/* FIXED CONFIG MODAL (CẬP NHẬT TÊN GỌI) */}
+                                        {/* FIXED CONFIG MODAL */}
                                         <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
                                             <div className="flex justify-between items-center mb-1">
                                                 <h4 className="font-bold text-purple-800 text-sm flex items-center gap-2"><BookOpen size={16}/> 1. Các khoản chi cố định</h4>
