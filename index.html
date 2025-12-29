@@ -61,6 +61,7 @@
         const Save = (p) => <IconBase {...p}><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></IconBase>;
         const ChevronLeft = (p) => <IconBase {...p}><path d="m15 18-6-6 6-6"/></IconBase>;
         const ChevronRight = (p) => <IconBase {...p}><path d="m9 18 6-6-6-6"/></IconBase>;
+        const RefreshCw = (p) => <IconBase {...p}><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></IconBase>;
 
         // --- MAIN APP ---
         const App = () => {
@@ -91,6 +92,9 @@
             const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
             const [isNewCategory, setIsNewCategory] = useState(false);
             const [activeTab, setActiveTab] = useState('add');
+
+            // Modal State
+            const [showReloadConfirm, setShowReloadConfirm] = useState(false);
 
             // Persistence
             useEffect(() => { localStorage.setItem('family_incomes', JSON.stringify(incomes)); }, [incomes]);
@@ -152,6 +156,10 @@
             const changeMonth = (offset) => {
                 const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 15);
                 setViewDate(newDate);
+            };
+
+            const handleReload = () => {
+                window.location.reload();
             };
 
             const totalIncome = filteredIncomes.reduce((a, c) => a + c.amount, 0);
@@ -238,7 +246,6 @@
                                             )}
                                         </div>
                                         <div className="space-y-3 pl-2">
-                                            {/* ĐÃ XÓA Ô INPUT DƯ Ở ĐÂY */}
                                             <div className="flex gap-2">
                                                 <input type="text" inputMode="numeric" placeholder="0" value={expenseAmount} onChange={e => handleAmountInput(e.target.value, setExpenseAmount)} className="flex-1 p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-red-100 font-bold text-gray-700 text-lg" />
                                                 <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="w-36 p-3 bg-gray-50 border-none rounded-xl text-sm font-medium text-gray-500" />
@@ -314,14 +321,44 @@
                             )}
                         </div>
 
-                        {/* Floating Bubble */}
-                        <div className={`fixed bottom-8 right-4 md:absolute md:bottom-8 md:right-4 z-50 flex flex-col items-end gap-2 transition-all duration-300 ${balance === 0 ? 'opacity-80' : 'opacity-100'}`}>
+                        {/* Floating Bubble with Click Event */}
+                        <div 
+                            onClick={() => setShowReloadConfirm(true)}
+                            className={`fixed bottom-8 right-4 md:absolute md:bottom-8 md:right-4 z-50 flex flex-col items-end gap-2 transition-all duration-300 cursor-pointer ${balance === 0 ? 'opacity-80' : 'opacity-100'}`}
+                        >
                             <div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg mb-1 shadow-sm border border-white/10">Số dư thực tế</div>
-                            <div className={`shadow-2xl rounded-full px-5 py-3 flex items-center gap-3 border-2 border-white/20 backdrop-blur-lg transform hover:scale-105 transition-all ${balance >= 0 ? 'bg-gradient-to-r from-blue-600 to-cyan-500' : 'bg-gradient-to-r from-red-600 to-orange-500'}`}>
+                            <div className={`shadow-2xl rounded-full px-5 py-3 flex items-center gap-3 border-2 border-white/20 backdrop-blur-lg transform hover:scale-105 active:scale-95 transition-all ${balance >= 0 ? 'bg-gradient-to-r from-blue-600 to-cyan-500' : 'bg-gradient-to-r from-red-600 to-orange-500'}`}>
                                 <div className="bg-white/20 p-1.5 rounded-full"><Wallet size={20} className="text-white"/></div>
                                 <div className="flex flex-col items-start"><span className="text-white font-extrabold text-lg leading-none">{formatCurrency(balance)} <span className="text-xs font-normal opacity-80">₫</span></span></div>
                             </div>
                         </div>
+
+                        {/* Reload Confirmation Modal */}
+                        {showReloadConfirm && (
+                            <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+                                <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-xs w-full text-center border border-gray-100">
+                                    <div className="bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600">
+                                        <RefreshCw size={24} />
+                                    </div>
+                                    <h3 className="font-bold text-lg text-slate-800 mb-2">Tải lại ứng dụng?</h3>
+                                    <p className="text-gray-500 text-sm mb-6 leading-relaxed">Dữ liệu mới nhất sẽ được cập nhật và giao diện sẽ được làm mới.</p>
+                                    <div className="flex gap-3">
+                                        <button 
+                                            onClick={() => setShowReloadConfirm(false)} 
+                                            className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                                        >
+                                            Hủy
+                                        </button>
+                                        <button 
+                                            onClick={handleReload} 
+                                            className="flex-1 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 transition-colors"
+                                        >
+                                            Đồng ý
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                     </div>
                 </div>
@@ -333,4 +370,5 @@
     </script>
 </body>
 </html>
+
 
