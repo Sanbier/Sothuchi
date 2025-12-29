@@ -1,4 +1,4 @@
-l<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -54,7 +54,6 @@ l<!DOCTYPE html>
             "Tiền Tiết Kiệm", "Tiền Cá Nhân", "Nợ", "Mua Sắm"
         ];
 
-        // Icons
         const IconBase = ({ size = 24, className = "", children }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>);
         const Plus = (p) => <IconBase {...p}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
         const Trash2 = (p) => <IconBase {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
@@ -96,7 +95,7 @@ l<!DOCTYPE html>
         const App = () => {
             const [incomes, setIncomes] = useState([]);
             const [expenses, setExpenses] = useState([]);
-            const [fixedTemplate, setFixedTemplate] = useState([]); // { category, amount }
+            const [fixedTemplate, setFixedTemplate] = useState([]);
             const [viewDate, setViewDate] = useState(new Date());
             
             const [incomeSource, setIncomeSource] = useState(''); const [incomeAmount, setIncomeAmount] = useState(''); const [incomeDate, setIncomeDate] = useState(new Date().toISOString().split('T')[0]);
@@ -122,7 +121,14 @@ l<!DOCTYPE html>
             const dbRef = useRef(null);
             const fileInputRef = useRef(null);
 
-            // --- FIREBASE & DATA LOADING ---
+            // --- AUTO SYNC INPUT DATE WITH VIEW DATE ---
+            useEffect(() => {
+                // Khi đổi tháng xem (viewDate), tự động cập nhật ngày nhập liệu về ngày 15 của tháng đó (để nằm giữa tháng)
+                const newDateStr = new Date(viewDate.getFullYear(), viewDate.getMonth(), 15).toISOString().split('T')[0];
+                setIncomeDate(newDateStr);
+                setExpenseDate(newDateStr);
+            }, [viewDate]);
+
             useEffect(() => {
                 if (firebaseConfigStr && familyCode) {
                     try {
@@ -137,12 +143,12 @@ l<!DOCTYPE html>
                                 const data = doc.data(); 
                                 setIncomes(data.incomes || []); 
                                 setExpenses(data.expenses || []); 
-                                setFixedTemplate(data.fixedTemplate || []); // Sync fixed template
+                                setFixedTemplate(data.fixedTemplate || []); 
                             } else { 
                                 const localIncomes = JSON.parse(localStorage.getItem('family_incomes') || '[]');
                                 const localExpenses = JSON.parse(localStorage.getItem('family_expenses') || '[]');
                                 const localFixed = JSON.parse(localStorage.getItem('family_fixed_template') || '[]');
-                                db.collection('families').doc(familyCode).set({ incomes: localIncomes, expenses: localExpenses, fixedTemplate: localFixed }); 
+                                if (localIncomes.length > 0 || localExpenses.length > 0) { db.collection('families').doc(familyCode).set({ incomes: localIncomes, expenses: localExpenses, fixedTemplate: localFixed }); }
                             }
                             setIsSyncing(false);
                         }, (error) => { console.error(error); setIsConnected(false); });
@@ -160,7 +166,6 @@ l<!DOCTYPE html>
                 localStorage.setItem('family_incomes', JSON.stringify(newIncomes));
                 localStorage.setItem('family_expenses', JSON.stringify(newExpenses));
                 localStorage.setItem('family_fixed_template', JSON.stringify(newFixed));
-                
                 if (isConnected && dbRef.current && familyCode) {
                     setIsSyncing(true);
                     dbRef.current.collection('families').doc(familyCode).set({ incomes: newIncomes, expenses: newExpenses, fixedTemplate: newFixed })
@@ -216,7 +221,7 @@ l<!DOCTYPE html>
             const handleAmountInput = (val, setter) => { const raw = val.replace(/\D/g,''); setter(raw === '' ? '' : Number(raw).toLocaleString('vi-VN')); };
             const parseAmount = (val) => val ? parseInt(val.replace(/\./g,''), 10) : 0;
 
-            // --- FIXED EXPENSES LOGIC ---
+            // --- FIXED EXPENSES LOGIC (SỬ DỤNG NGÀY THEO VIEW HIỆN TẠI) ---
             const openFixedConfig = () => {
                 const currentMap = {};
                 fixedTemplate.forEach(item => currentMap[item.category] = item.amount);
@@ -245,15 +250,19 @@ l<!DOCTYPE html>
                     alert('Bạn chưa cài đặt khoản cố định nào. Hãy bấm "Cấu hình" trước.');
                     return;
                 }
-                const today = new Date().toISOString();
+                // SỬA LỖI: Lấy ngày 10 của THÁNG ĐANG XEM để tạo phiếu chi
+                const targetDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 10).toISOString();
+                
                 const newItems = fixedTemplate.map(item => ({
                     id: Date.now() + Math.random(),
                     category: item.category,
                     amount: item.amount,
-                    date: today
+                    date: targetDate
                 }));
                 saveData(incomes, [...newItems, ...expenses], fixedTemplate);
-                alert(`Đã thêm ${newItems.length} khoản chi vào hôm nay!`);
+                
+                const monthDisplay = `${viewDate.getMonth() + 1}/${viewDate.getFullYear()}`;
+                alert(`Đã thêm ${newItems.length} khoản chi vào THÁNG ${monthDisplay} thành công!`);
             };
 
             // --- MAIN ACTIONS ---
@@ -415,18 +424,18 @@ l<!DOCTYPE html>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                         <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2"><Settings className="text-slate-600" size={20}/> Cài đặt & Dữ liệu</h3>
                                         
-                                        {/* FIXED EXPENSES MANAGER (NEW) */}
+                                        {/* FIXED CONFIG MODAL (CẬP NHẬT TÊN GỌI) */}
                                         <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
                                             <div className="flex justify-between items-center mb-1">
                                                 <h4 className="font-bold text-purple-800 text-sm flex items-center gap-2"><BookOpen size={16}/> 1. Các khoản chi cố định</h4>
                                                 <button onClick={openFixedConfig} className="text-purple-600 text-xs font-bold border border-purple-200 bg-white px-2 py-1 rounded">Cấu hình mẫu</button>
                                             </div>
-                                            <p className="text-xs text-purple-600 mb-3">Tự động điền các khoản chi tiêu hàng tháng theo mẫu đã cài đặt.</p>
+                                            <p className="text-xs text-purple-600 mb-3">Tự động điền vào sổ chi tiêu của tháng đang xem.</p>
                                             <button onClick={applyFixedExpenses} className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs transition-all"><CheckSquare size={16}/> Áp dụng cho tháng này</button>
                                         </div>
 
                                         <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                                            <h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 2. Xuất Excel & Backup</h4>
+                                            <h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 2. Xuất báo cáo Excel & Sao lưu</h4>
                                             <div className="flex gap-2">
                                                 <button onClick={handleExportExcel} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><FileSpreadsheet size={16}/> Excel</button>
                                                 <button onClick={handleBackup} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><Download size={16}/> Backup</button>
