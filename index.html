@@ -7,17 +7,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Sổ Thu Chi Gia Đình</title>
     
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
 
     <style>
@@ -60,7 +55,26 @@
             "Tiền Tiết Kiệm", "Tiền Cá Nhân", "Nợ", "Mua Sắm"
         ];
 
-        // --- ICONS ---
+        // DỮ LIỆU LÃI SUẤT THAM KHẢO (BIG 4)
+        const BANK_DATA = {
+            "VietinBank": {
+                url: "https://www.vietinbank.vn/web/home/vn/lai-suat",
+                rates: { 1: 1.7, 3: 2.0, 6: 3.0, 9: 3.0, 12: 4.7, 24: 4.8 }
+            },
+            "Vietcombank": {
+                url: "https://portal.vietcombank.com.vn/Personal/Interest/Pages/lai-suat.aspx",
+                rates: { 1: 1.6, 3: 1.9, 6: 2.9, 9: 2.9, 12: 4.6, 24: 4.7 }
+            },
+            "BIDV": {
+                url: "https://bidv.com.vn/vn/tra-cuu-lai-suat",
+                rates: { 1: 1.7, 3: 2.0, 6: 3.0, 9: 3.0, 12: 4.7, 24: 4.8 }
+            },
+            "Agribank": {
+                url: "https://www.agribank.com.vn/vn/lai-suat",
+                rates: { 1: 1.6, 3: 1.9, 6: 3.0, 9: 3.0, 12: 4.7, 24: 4.8 }
+            }
+        };
+
         const IconBase = ({ size = 24, className = "", children }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>);
         const Plus = (p) => <IconBase {...p}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
         const Trash2 = (p) => <IconBase {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
@@ -89,8 +103,8 @@
         const BookOpen = (p) => <IconBase {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
         const CheckSquare = (p) => <IconBase {...p}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></IconBase>;
         const PiggyBank = (p) => <IconBase {...p}><path d="M19 5c-1.5 0-2.8.6-3.5 1.5A5.6 5.6 0 0 0 12 5.5v.5h-.5a1.5 1.5 0 0 0 0 3h.5v.5a2 2 0 0 1-2 2 2 2 0 0 0-2-2h-2.5a2 2 0 0 0-2 2V13c0 2.5 4.5 4 4.5 4h1a5.5 5.5 0 0 0 5.5-5.5v-1a5.5 5.5 0 0 0 .8-2.5 1 1 0 0 0-1-1H19v-2Z"/><path d="M16 5.5a2.5 2.5 0 0 0-5 0V6h5v-.5Z"/><circle cx="16" cy="10" r="1"/></IconBase>;
+        const Globe = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></IconBase>;
 
-        // --- COMPONENT: Custom Date Picker ---
         const CustomDatePicker = ({ value, onChange, className="" }) => {
             const displayDate = value ? value.split('-').reverse().join('/') : '';
             return (
@@ -104,7 +118,6 @@
         };
 
         const App = () => {
-            // HÀM LẤY NGÀY HIỆN TẠI (LOCAL TIME)
             const getLocalToday = () => {
                 const d = new Date();
                 const year = d.getFullYear();
@@ -144,7 +157,6 @@
             const dbRef = useRef(null);
             const fileInputRef = useRef(null);
 
-            // --- FIREBASE SYNC ---
             useEffect(() => {
                 if (firebaseConfigStr && familyCode) {
                     try {
@@ -195,7 +207,9 @@
                 }
             };
 
-            const handleSaveConfig = () => { try { JSON.parse(firebaseConfigStr); if (!familyCode.trim()) throw new Error("Chưa nhập Mã Gia Đình"); localStorage.setItem('fb_config', firebaseConfigStr); localStorage.setItem('fb_family_code', familyCode); alert("Cấu hình hợp lệ! Đang tải lại..."); window.location.reload(); } catch (e) { alert("Lỗi cấu hình! " + e.message); } };
+            const handleSaveConfig = () => {
+                try { JSON.parse(firebaseConfigStr); if (!familyCode.trim()) throw new Error("Chưa nhập Mã Gia Đình"); localStorage.setItem('fb_config', firebaseConfigStr); localStorage.setItem('fb_family_code', familyCode); alert("Cấu hình hợp lệ! Đang tải lại..."); window.location.reload(); } catch (e) { alert("Lỗi cấu hình! " + e.message); }
+            };
             const handleDisconnect = () => { if(confirm('Ngắt kết nối?')) { localStorage.removeItem('fb_config'); localStorage.removeItem('fb_family_code'); window.location.reload(); }};
 
             // Smart Suggestion
@@ -241,28 +255,38 @@
             const handleAmountInput = (val, setter) => { const raw = val.replace(/\D/g,''); setter(raw === '' ? '' : Number(raw).toLocaleString('vi-VN')); };
             const parseAmount = (val) => val ? parseInt(val.replace(/\./g,''), 10) : 0;
 
-            // --- FIXED EXPENSES ---
-            const openFixedConfig = () => { const currentMap = {}; fixedTemplate.forEach(item => currentMap[item.category] = item.amount); setTempFixedList(currentMap); setShowFixedConfig(true); };
+            // --- AUTO FILL RATE ---
+            useEffect(() => {
+                if (invBank && invTerm && BANK_DATA[invBank]) {
+                    const rates = BANK_DATA[invBank].rates;
+                    // Tìm kỳ hạn gần nhất nếu không có chính xác
+                    const exactRate = rates[invTerm];
+                    if (exactRate) setInvRate(exactRate);
+                }
+            }, [invBank, invTerm]);
+
+            const openBankWebsite = () => {
+                if(invBank && BANK_DATA[invBank]) { window.open(BANK_DATA[invBank].url, '_blank'); }
+                else { alert('Vui lòng chọn ngân hàng trước'); }
+            };
+
+            const openFixedConfig = () => {
+                const currentMap = {}; fixedTemplate.forEach(item => currentMap[item.category] = item.amount); setTempFixedList(currentMap); setShowFixedConfig(true);
+            };
             const handleFixedAmountChange = (cat, val) => { const raw = val.replace(/\D/g,''); const amt = raw === '' ? 0 : parseInt(raw, 10); setTempFixedList(prev => ({ ...prev, [cat]: amt })); };
             const saveFixedConfig = () => { const newTemplate = []; Object.entries(tempFixedList).forEach(([cat, amt]) => { if (amt > 0) newTemplate.push({ category: cat, amount: amt }); }); saveData(incomes, expenses, newTemplate); setShowFixedConfig(false); alert('Đã lưu cấu hình!'); };
             
             const applyFixedExpenses = () => {
                 if (fixedTemplate.length === 0) { alert('Chưa có cấu hình mẫu.'); return; }
-                
-                // Logic: Lấy ngày 10 của tháng ĐANG XEM (viewDate)
                 const targetYear = viewDate.getFullYear();
                 const targetMonth = viewDate.getMonth();
-                // Tạo ngày an toàn: 12h trưa ngày 10
                 const targetDate = new Date(targetYear, targetMonth, 10, 12, 0, 0).toISOString();
-
                 const newItems = fixedTemplate.map(item => ({ id: Date.now() + Math.random(), category: item.category, amount: item.amount, date: targetDate }));
                 saveData(incomes, [...newItems, ...expenses], fixedTemplate);
-                
                 const monthDisplay = `${targetMonth + 1}/${targetYear}`;
                 alert(`Đã thêm ${newItems.length} khoản chi vào THÁNG ${monthDisplay} thành công!`);
             };
 
-            // --- MAIN ACTIONS ---
             const handleAddIncome = () => {
                 const amt = parseAmount(incomeAmount); if(!incomeSource || amt <= 0) return;
                 const newItem = { id: editingId || Date.now(), source: incomeSource, amount: amt, date: new Date(incomeDate).toISOString() };
@@ -327,7 +351,6 @@
                     <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative">
                         {isOverBudget && <div className="bg-red-50 text-red-600 px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 animate-pulse-red border-b border-red-100"><AlertTriangle size={16} /> CẢNH BÁO: Đã chi tiêu quá 90% thu nhập!</div>}
                         
-                        {/* Header */}
                         <div className={`bg-gradient-to-r ${isConnected ? 'from-blue-800 to-indigo-900' : 'from-slate-700 to-gray-800'} p-6 pb-8 text-white rounded-b-3xl shadow-lg transition-colors duration-500`}>
                             <div className="flex items-center justify-between mb-4">
                                 <button onClick={()=>setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 15))} className="p-2 text-white/70 hover:text-white"><ChevronLeft size={24}/></button>
@@ -346,7 +369,6 @@
                             </div>
                         </div>
 
-                        {/* Tabs Menu */}
                         <div className="px-4 -mt-6 relative z-10">
                             <div className="bg-white rounded-xl shadow-xl p-1.5 flex border border-gray-100 overflow-x-auto no-scrollbar">
                                 {['add', 'report', 'invest', 'history', 'settings'].map(tab => (
@@ -411,7 +433,7 @@
                                 </div>
                             )}
 
-                            {/* TAB: ĐẦU TƯ */}
+                            {/* TAB: ĐẦU TƯ (MỚI) */}
                             {activeTab === 'invest' && (
                                 <div className="space-y-6 animate-fadeIn mt-2">
                                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
@@ -425,9 +447,33 @@
                                     <div className="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div><h3 className="font-bold text-blue-800 flex items-center gap-2 mb-3"><TrendingUp size={18}/> Mở Sổ Tiết Kiệm</h3>
                                         <div className="space-y-3 pl-2">
-                                            <input type="text" placeholder="Ngân hàng..." value={invBank} onChange={e=>setInvBank(e.target.value)} className="w-full p-2 bg-gray-50 border-none rounded-lg text-sm font-medium"/>
-                                            <div className="flex gap-2"><input type="text" inputMode="numeric" placeholder="Số tiền..." value={invAmount} onChange={e=>handleAmountInput(e.target.value, setInvAmount)} className="flex-1 p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700"/><input type="number" placeholder="%/Năm" value={invRate} onChange={e=>setInvRate(e.target.value)} className="w-24 p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700"/></div>
-                                            <div className="flex items-center gap-2"><span className="text-xs text-gray-500 font-bold">Kỳ hạn:</span><select value={invTerm} onChange={e=>setInvTerm(e.target.value)} className="flex-1 p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700"><option value="1">1 Tháng</option><option value="3">3 Tháng</option><option value="6">6 Tháng</option><option value="12">12 Tháng</option><option value="24">24 Tháng</option></select></div>
+                                            <div className="flex gap-2 items-center">
+                                                <select value={invBank} onChange={e=>setInvBank(e.target.value)} className="flex-1 p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700">
+                                                    <option value="">Chọn Ngân hàng</option>
+                                                    {Object.keys(BANK_DATA).map(b => <option key={b} value={b}>{b}</option>)}
+                                                    <option value="Khác">Khác</option>
+                                                </select>
+                                                <button onClick={openBankWebsite} className="p-2 bg-blue-100 text-blue-600 rounded-lg" title="Tra cứu lãi suất"><Globe size={18}/></button>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <input type="text" inputMode="numeric" placeholder="Số tiền..." value={invAmount} onChange={e=>handleAmountInput(e.target.value, setInvAmount)} className="flex-1 p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700"/>
+                                            </div>
+                                            
+                                            <div className="flex gap-2">
+                                                <select value={invTerm} onChange={e=>setInvTerm(e.target.value)} className="w-1/2 p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700">
+                                                    <option value="1">1 Tháng</option>
+                                                    <option value="3">3 Tháng</option>
+                                                    <option value="6">6 Tháng</option>
+                                                    <option value="9">9 Tháng</option>
+                                                    <option value="12">12 Tháng</option>
+                                                    <option value="24">24 Tháng</option>
+                                                </select>
+                                                <div className="flex-1 relative">
+                                                    <input type="number" placeholder="%/Năm" value={invRate} onChange={e=>setInvRate(e.target.value)} className="w-full p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700"/>
+                                                </div>
+                                            </div>
+                                            
                                             {expectedInterest > 0 && <div className="bg-blue-50 p-2 rounded-lg text-xs text-blue-700 flex justify-between items-center border border-blue-100"><span>Lãi dự kiến:</span><span className="font-bold text-sm">+{formatCurrency(expectedInterest)} VNĐ</span></div>}
                                             <button onClick={handleAddInvestment} className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex justify-center items-center gap-2 text-sm"><Plus size={16}/> Mở Sổ</button>
                                         </div>
@@ -452,14 +498,26 @@
                                 <div className="animate-fadeIn mt-2">
                                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[50vh]">
                                         <div className="p-4 bg-gray-50 border-b border-gray-100">
-                                            <div className="flex justify-between items-center mb-3"><h3 className="font-bold text-gray-700 text-sm flex items-center gap-2"><History size={16}/> Lịch sử & Tìm kiếm</h3><span className="text-[10px] bg-white border px-2 py-1 rounded text-gray-500 font-medium">{filteredIncomes.length + filteredExpenses.length} bản ghi</span></div>
-                                            <div className="flex gap-2"><div className="relative flex-1"><Search size={14} className="absolute left-3 top-3 text-gray-400" /><input type="text" placeholder="Nhập Thu/Chi muốn tìm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-100 outline-none"/></div><select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="pl-2 pr-6 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 outline-none truncate max-w-[100px]"><option value="all">Tất cả</option><option value="income_type">Thu nhập</option>{availableFilterCategories.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2"><History size={16}/> Lịch sử & Tìm kiếm</h3>
+                                                <span className="text-[10px] bg-white border px-2 py-1 rounded text-gray-500 font-medium">{filteredIncomes.length + filteredExpenses.length} bản ghi</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1"><Search size={14} className="absolute left-3 top-3 text-gray-400" /><input type="text" placeholder="Nhập Thu/Chi muốn tìm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-100 outline-none"/></div>
+                                                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="pl-2 pr-6 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 outline-none truncate max-w-[100px]"><option value="all">Tất cả</option><option value="income_type">Thu nhập</option>{availableFilterCategories.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                                            </div>
                                         </div>
                                         <div className="max-h-[60vh] overflow-y-auto">
                                             {[...filteredIncomes.map(i=>({...i,type:'income'})), ...filteredExpenses.map(e=>({...e,type:'expense'}))].sort((a,b)=>new Date(b.date)-new Date(a.date)).map((item,idx) => (
                                                 <div key={item.id} className={`p-4 flex justify-between items-center hover:bg-gray-50 transition-colors ${idx!==0?'border-t border-gray-50':''}`}>
-                                                    <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${item.type==='income'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'}`}>{item.type==='income'?<TrendingUp size={18}/>:<TrendingDown size={18}/>}</div><div><p className="font-bold text-gray-800 text-sm">{item.type==='income'?item.source:item.category}</p><p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5"><CalendarIcon size={10}/> {formatDate(item.date)}</p></div></div>
-                                                    <div className="text-right"><p className={`font-bold text-sm ${item.type==='income'?'text-green-600':'text-red-600'}`}>{item.type==='income'?'+':'-'}{formatCurrency(item.amount)} VNĐ</p><div className="flex items-center justify-end gap-3 mt-1.5"><button onClick={()=>handleEdit(item, item.type)} className="text-[10px] text-gray-400 hover:text-blue-600 font-bold flex items-center gap-1"><Edit2 size={10}/> Sửa</button><button onClick={()=>deleteItem(item.id, item.type)} className="text-[10px] text-gray-400 hover:text-red-500 font-bold flex items-center gap-1"><Trash2 size={10}/> Xóa</button></div></div>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${item.type==='income'?'bg-green-100 text-green-600':'bg-red-100 text-red-600'}`}>{item.type==='income'?<TrendingUp size={18}/>:<TrendingDown size={18}/>}</div>
+                                                        <div><p className="font-bold text-gray-800 text-sm">{item.type==='income'?item.source:item.category}</p><p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5"><CalendarIcon size={10}/> {formatDate(item.date)}</p></div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className={`font-bold text-sm ${item.type==='income'?'text-green-600':'text-red-600'}`}>{item.type==='income'?'+':'-'}{formatCurrency(item.amount)} VNĐ</p>
+                                                        <div className="flex items-center justify-end gap-3 mt-1.5"><button onClick={()=>handleEdit(item, item.type)} className="text-[10px] text-gray-400 hover:text-blue-600 font-bold flex items-center gap-1"><Edit2 size={10}/> Sửa</button><button onClick={()=>deleteItem(item.id, item.type)} className="text-[10px] text-gray-400 hover:text-red-500 font-bold flex items-center gap-1"><Trash2 size={10}/> Xóa</button></div>
+                                                    </div>
                                                 </div>
                                             ))}
                                             {(filteredIncomes.length===0 && filteredExpenses.length===0) && <div className="p-10 text-center text-gray-400 text-sm">Không tìm thấy dữ liệu.</div>}
@@ -468,14 +526,54 @@
                                 </div>
                             )}
 
-                            {/* TAB: CÀI ĐẶT */}
                             {activeTab === 'settings' && (
                                 <div className="space-y-6 animate-fadeIn mt-2">
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                                         <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-2"><Settings className="text-slate-600" size={20}/> Cài đặt & Dữ liệu</h3>
-                                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100"><div className="flex justify-between items-center mb-1"><h4 className="font-bold text-purple-800 text-sm flex items-center gap-2"><BookOpen size={16}/> 1. Các khoản chi cố định</h4><button onClick={openFixedConfig} className="text-purple-600 text-xs font-bold border border-purple-200 bg-white px-2 py-1 rounded">Cấu hình mẫu</button></div><p className="text-xs text-purple-600 mb-3">Tự động điền vào sổ chi tiêu của tháng đang xem.</p><button onClick={applyFixedExpenses} className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs transition-all"><CheckSquare size={16}/> Áp dụng cho tháng này</button></div>
-                                        <div className="bg-green-50 p-4 rounded-xl border border-green-100"><h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 2. Xuất báo cáo Excel & Sao lưu</h4><div className="flex gap-2"><button onClick={handleExportExcel} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><FileSpreadsheet size={16}/> Excel</button><button onClick={handleBackup} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><Download size={16}/> Backup</button></div><div className="mt-3 pt-3 border-t border-green-200"><button onClick={() => fileInputRef.current.click()} className="w-full py-2 bg-white text-green-700 border border-green-300 font-bold rounded-lg flex justify-center items-center gap-2 text-xs hover:bg-green-50"><Upload size={14}/> Khôi phục từ file JSON</button><input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" /></div></div>
-                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100"><div className="flex justify-between items-center mb-2"><h4 className="font-bold text-blue-800 text-sm flex items-center gap-2"><Cloud size={16}/> 3. Đồng bộ Đám mây (Online)</h4><button onClick={()=>setShowCloudForm(!showCloudForm)} className="text-blue-500 hover:text-blue-700"><ChevronDown size={16} className={`transform transition-transform ${showCloudForm ? 'rotate-180' : ''}`}/></button></div>{isConnected ? (<div className="space-y-3"><div className="bg-white p-3 rounded-lg border border-blue-200"><p className="text-xs text-gray-500 uppercase font-bold">Đang kết nối tới:</p><p className="text-sm font-bold text-blue-600 mt-1">{familyCode}</p></div><button onClick={handleDisconnect} className="w-full py-2 bg-white text-red-500 border border-red-200 font-bold rounded-lg text-xs hover:bg-red-50">Ngắt kết nối</button></div>) : (showCloudForm && (<div className="space-y-3 animate-fadeIn"><p className="text-xs text-blue-600 leading-relaxed">Nhập cấu hình Firebase và Mã gia đình để đồng bộ.</p><div><label className="text-[10px] font-bold text-gray-500 uppercase">Mã Gia Đình</label><input type="text" value={familyCode} onChange={e=>setFamilyCode(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-sm bg-white" placeholder="Ví dụ: GD-123456" /></div><div><label className="text-[10px] font-bold text-gray-500 uppercase">Cấu hình Firebase (JSON)</label><textarea value={firebaseConfigStr} onChange={e=>setFirebaseConfigStr(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-[10px] h-20 bg-white font-mono" placeholder='{"apiKey": "..."}'></textarea></div><button onClick={handleSaveConfig} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all text-xs">KẾT NỐI NGAY</button></div>))} {!isConnected && !showCloudForm && <button onClick={()=>setShowCloudForm(true)} className="w-full py-2 bg-white text-blue-600 border border-blue-300 font-bold rounded-lg text-xs mt-2">Thiết lập kết nối</button>}</div>
+                                        
+                                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <h4 className="font-bold text-purple-800 text-sm flex items-center gap-2"><BookOpen size={16}/> 1. Các khoản chi cố định</h4>
+                                                <button onClick={openFixedConfig} className="text-purple-600 text-xs font-bold border border-purple-200 bg-white px-2 py-1 rounded">Cấu hình mẫu</button>
+                                            </div>
+                                            <p className="text-xs text-purple-600 mb-3">Tự động điền vào sổ chi tiêu của tháng đang xem.</p>
+                                            <button onClick={applyFixedExpenses} className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs transition-all"><CheckSquare size={16}/> Áp dụng cho tháng này</button>
+                                        </div>
+
+                                        <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                                            <h4 className="font-bold text-green-800 text-sm mb-1 flex items-center gap-2"><FileSpreadsheet size={16}/> 2. Xuất báo cáo Excel & Sao lưu</h4>
+                                            <div className="flex gap-2">
+                                                <button onClick={handleExportExcel} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><FileSpreadsheet size={16}/> Excel</button>
+                                                <button onClick={handleBackup} className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md flex justify-center items-center gap-2 text-xs"><Download size={16}/> Backup</button>
+                                            </div>
+                                            <div className="mt-3 pt-3 border-t border-green-200">
+                                                <button onClick={() => fileInputRef.current.click()} className="w-full py-2 bg-white text-green-700 border border-green-300 font-bold rounded-lg flex justify-center items-center gap-2 text-xs hover:bg-green-50"><Upload size={14}/> Khôi phục từ file JSON</button>
+                                                <input type="file" ref={fileInputRef} onChange={handleRestore} className="hidden" accept=".json" />
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <h4 className="font-bold text-blue-800 text-sm flex items-center gap-2"><Cloud size={16}/> 3. Đồng bộ Đám mây (Online)</h4>
+                                                <button onClick={()=>setShowCloudForm(!showCloudForm)} className="text-blue-500 hover:text-blue-700"><ChevronDown size={16} className={`transform transition-transform ${showCloudForm ? 'rotate-180' : ''}`}/></button>
+                                            </div>
+                                            {isConnected ? (
+                                                <div className="space-y-3">
+                                                    <div className="bg-white p-3 rounded-lg border border-blue-200"><p className="text-xs text-gray-500 uppercase font-bold">Đang kết nối tới:</p><p className="text-sm font-bold text-blue-600 mt-1">{familyCode}</p></div>
+                                                    <button onClick={handleDisconnect} className="w-full py-2 bg-white text-red-500 border border-red-200 font-bold rounded-lg text-xs hover:bg-red-50">Ngắt kết nối</button>
+                                                </div>
+                                            ) : (
+                                                showCloudForm && (
+                                                    <div className="space-y-3 animate-fadeIn">
+                                                        <p className="text-xs text-blue-600 leading-relaxed">Nhập cấu hình Firebase và Mã gia đình để đồng bộ.</p>
+                                                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Mã Gia Đình</label><input type="text" value={familyCode} onChange={e=>setFamilyCode(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-sm bg-white" placeholder="Ví dụ: GD-123456" /></div>
+                                                        <div><label className="text-[10px] font-bold text-gray-500 uppercase">Cấu hình Firebase (JSON)</label><textarea value={firebaseConfigStr} onChange={e=>setFirebaseConfigStr(e.target.value)} className="w-full p-2 mt-1 border rounded-lg text-[10px] h-20 bg-white font-mono" placeholder='{"apiKey": "..."}'></textarea></div>
+                                                        <button onClick={handleSaveConfig} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-all text-xs">KẾT NỐI NGAY</button>
+                                                    </div>
+                                                )
+                                            )}
+                                            {!isConnected && !showCloudForm && <button onClick={()=>setShowCloudForm(true)} className="w-full py-2 bg-white text-blue-600 border border-blue-300 font-bold rounded-lg text-xs mt-2">Thiết lập kết nối</button>}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -485,9 +583,29 @@
                         {showFixedConfig && (
                             <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
                                 <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
-                                    <div className="p-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center"><h3 className="font-bold text-purple-800 flex items-center gap-2">Cài đặt khoản cố định</h3><button onClick={()=>setShowFixedConfig(false)}><X size={20} className="text-purple-400"/></button></div>
-                                    <div className="p-4 overflow-y-auto flex-1 space-y-3"><p className="text-xs text-gray-500 mb-2 italic">Nhập số tiền cho các mục cố định hàng tháng (Để trống nếu không có).</p>{FIXED_CATEGORIES.map(cat => (<div key={cat} className="flex items-center justify-between gap-2 border-b border-gray-50 pb-2"><span className="text-sm font-medium text-gray-700 flex-1">{cat}</span><input type="text" inputMode="numeric" placeholder="0" value={tempFixedList[cat] ? Number(tempFixedList[cat]).toLocaleString('vi-VN') : ''} onChange={(e) => handleFixedAmountChange(cat, e.target.value)} className="w-24 p-2 bg-gray-50 border border-gray-200 rounded text-right text-sm font-bold text-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-500" /></div>))}</div>
-                                    <div className="p-4 border-t border-gray-100"><button onClick={saveFixedConfig} className="w-full py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-all">Lưu Cấu Hình</button></div>
+                                    <div className="p-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center">
+                                        <h3 className="font-bold text-purple-800 flex items-center gap-2">Cài đặt khoản cố định</h3>
+                                        <button onClick={()=>setShowFixedConfig(false)}><X size={20} className="text-purple-400"/></button>
+                                    </div>
+                                    <div className="p-4 overflow-y-auto flex-1 space-y-3">
+                                        <p className="text-xs text-gray-500 mb-2 italic">Nhập số tiền cho các mục cố định hàng tháng (Để trống nếu không có).</p>
+                                        {FIXED_CATEGORIES.map(cat => (
+                                            <div key={cat} className="flex items-center justify-between gap-2 border-b border-gray-50 pb-2">
+                                                <span className="text-sm font-medium text-gray-700 flex-1">{cat}</span>
+                                                <input 
+                                                    type="text" 
+                                                    inputMode="numeric" 
+                                                    placeholder="0"
+                                                    value={tempFixedList[cat] ? Number(tempFixedList[cat]).toLocaleString('vi-VN') : ''}
+                                                    onChange={(e) => handleFixedAmountChange(cat, e.target.value)}
+                                                    className="w-24 p-2 bg-gray-50 border border-gray-200 rounded text-right text-sm font-bold text-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="p-4 border-t border-gray-100">
+                                        <button onClick={saveFixedConfig} className="w-full py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-all">Lưu Cấu Hình</button>
+                                    </div>
                                 </div>
                             </div>
                         )}
