@@ -65,32 +65,6 @@
             "Tiền Tiết Kiệm", "Tiền Cá Nhân", "Nợ", "Mua Sắm"
         ];
 
-        // TỪ KHÓA MAP
-        const KEYWORDS_MAP = {
-            "ăn": "Ăn (Sáng/Trưa/Tối)", "phở": "Ăn (Sáng/Trưa/Tối)", "cơm": "Ăn (Sáng/Trưa/Tối)", "bún": "Ăn (Sáng/Trưa/Tối)", "sáng": "Ăn (Sáng/Trưa/Tối)", "trưa": "Ăn (Sáng/Trưa/Tối)", "tối": "Ăn (Sáng/Trưa/Tối)",
-            "ăn vặt": "Ăn vặt/Nước ngọt", "nước": "Ăn vặt/Nước ngọt", "trà sữa": "Ăn vặt/Nước ngọt", "cafe": "Ăn vặt/Nước ngọt",
-            "điện": "Wi-Fi & Điện", "mạng": "Wi-Fi & Điện", "wifi": "Wi-Fi & Điện",
-            "cưới": "Cưới hỏi & Ma chay", "ma chay": "Cưới hỏi & Ma chay",
-            "học": "Học phí cho Con", "trường": "Học phí cho Con",
-            "bỉm": "Bỉm cho Con", "tã": "Bỉm cho Con",
-            "sữa": "Sữa cho Con",
-            "xăng": "Xăng xe", "xe": "Xăng xe",
-            "rác": "Rác thải sinh hoạt",
-            "chợ": "Nhu Yếu Phẩm", "siêu thị": "Nhu Yếu Phẩm", "gạo": "Nhu Yếu Phẩm",
-            "thuốc": "Đồ dùng Y Tế", "khám": "Đồ dùng Y Tế",
-            "tiết kiệm": "Tiền Tiết Kiệm",
-            "tóc": "Tiền Cá Nhân", "quần": "Tiền Cá Nhân", "áo": "Tiền Cá Nhân",
-            "nợ": "Nợ", "trả": "Nợ",
-            "mua": "Mua Sắm", "shopee": "Mua Sắm"
-        };
-
-        const BANK_DATA = {
-            "VietinBank": { url: "https://www.vietinbank.vn/web/home/vn/lai-suat", rates: { 1: 1.7, 3: 2.0, 6: 3.0, 9: 3.0, 12: 4.7, 24: 4.8 } },
-            "Vietcombank": { url: "https://portal.vietcombank.com.vn/Personal/Interest/Pages/lai-suat.aspx", rates: { 1: 1.6, 3: 1.9, 6: 2.9, 9: 2.9, 12: 4.6, 24: 4.7 } },
-            "BIDV": { url: "https://bidv.com.vn/vn/tra-cuu-lai-suat", rates: { 1: 1.7, 3: 2.0, 6: 3.0, 9: 3.0, 12: 4.7, 24: 4.8 } },
-            "Agribank": { url: "https://www.agribank.com.vn/vn/lai-suat", rates: { 1: 1.6, 3: 1.9, 6: 3.0, 9: 3.0, 12: 4.7, 24: 4.8 } }
-        };
-
         const IconBase = ({ size = 24, className = "", children }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>);
         const Plus = (p) => <IconBase {...p}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
         const Trash2 = (p) => <IconBase {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
@@ -120,8 +94,7 @@
         const CheckSquare = (p) => <IconBase {...p}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></IconBase>;
         const PiggyBank = (p) => <IconBase {...p}><path d="M19 5c-1.5 0-2.8.6-3.5 1.5A5.6 5.6 0 0 0 12 5.5v.5h-.5a1.5 1.5 0 0 0 0 3h.5v.5a2 2 0 0 1-2 2 2 2 0 0 0-2-2h-2.5a2 2 0 0 0-2 2V13c0 2.5 4.5 4 4.5 4h1a5.5 5.5 0 0 0 5.5-5.5v-1a5.5 5.5 0 0 0 .8-2.5 1 1 0 0 0-1-1H19v-2Z"/><path d="M16 5.5a2.5 2.5 0 0 0-5 0V6h5v-.5Z"/><circle cx="16" cy="10" r="1"/></IconBase>;
         const Globe = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></IconBase>;
-        const MessageCircle = (p) => <IconBase {...p}><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></IconBase>;
-        const Send = (p) => <IconBase {...p}><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></IconBase>;
+        const Activity = (p) => <IconBase {...p}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></IconBase>;
 
         const CustomDatePicker = ({ value, onChange, className="" }) => {
             const displayDate = value ? value.split('-').reverse().join('/') : '';
@@ -155,17 +128,20 @@
                 return today;
             });
             
+            // Inputs: Mặc định luôn là ngày hiện tại (Local Time)
             const [incomeSource, setIncomeSource] = useState(''); const [incomeAmount, setIncomeAmount] = useState(''); const [incomeDate, setIncomeDate] = useState(getLocalToday()); const [incomeNote, setIncomeNote] = useState('');
             const [expenseCategory, setExpenseCategory] = useState(''); const [expenseAmount, setExpenseAmount] = useState(''); const [expenseDate, setExpenseDate] = useState(getLocalToday()); const [expenseNote, setExpenseNote] = useState('');
             const [activeTab, setActiveTab] = useState('add');
             
+            // Investment Inputs
             const [invAmount, setInvAmount] = useState(''); const [invBank, setInvBank] = useState(''); const [invTerm, setInvTerm] = useState(1); const [invRate, setInvRate] = useState('');
             
             const [editingId, setEditingId] = useState(null); const [editingType, setEditingType] = useState(null);
             const [searchTerm, setSearchTerm] = useState(''); const [filterCategory, setFilterCategory] = useState('all');
             
             const [showReloadConfirm, setShowReloadConfirm] = useState(false);
-            const [suggestion, setSuggestion] = useState(0);
+            const [categorySpent, setCategorySpent] = useState(0); // Thay thế suggestion
+            
             const [showFixedConfig, setShowFixedConfig] = useState(false);
             const [tempFixedList, setTempFixedList] = useState({});
 
@@ -176,9 +152,6 @@
             const [showCloudForm, setShowCloudForm] = useState(false);
             const dbRef = useRef(null);
             const fileInputRef = useRef(null);
-
-            const [showChat, setShowChat] = useState(false);
-            const [chatInput, setChatInput] = useState("");
 
             useEffect(() => {
                 if (firebaseConfigStr && familyCode) {
@@ -238,7 +211,6 @@
 
             const handleSaveConfig = () => { try { JSON.parse(firebaseConfigStr); if (!familyCode.trim()) throw new Error("Chưa nhập Mã Gia Đình"); localStorage.setItem('fb_config', firebaseConfigStr); localStorage.setItem('fb_family_code', familyCode); alert("Cấu hình hợp lệ! Đang tải lại..."); window.location.reload(); } catch (e) { alert("Lỗi cấu hình! " + e.message); } };
             const handleDisconnect = () => { if(confirm('Ngắt kết nối?')) { localStorage.removeItem('fb_config'); localStorage.removeItem('fb_family_code'); window.location.reload(); }};
-            const applySuggestion = () => { setExpenseAmount(suggestion.toLocaleString('vi-VN')); };
             const availableFilterCategories = useMemo(() => { const historyCategories = expenses.map(e => e.category); return Array.from(new Set([...ALL_CATEGORIES, ...historyCategories])).sort(); }, [expenses, ALL_CATEGORIES]);
             const getFiscalRange = (date) => { const year = date.getFullYear(), month = date.getMonth(); const startDate = new Date(year, month, 0); startDate.setHours(0,0,0,0); const endDate = new Date(year, month, new Date(year, month + 1, 0).getDate() - 1); endDate.setHours(23,59,59,999); return { startDate, endDate }; };
             const { startDate, endDate } = useMemo(() => getFiscalRange(viewDate), [viewDate]);
@@ -261,92 +233,32 @@
             const handleBackup = () => { const data = { incomes, expenses, fixedTemplate, investments, customCategories, version: 3, backupDate: new Date().toISOString() }; const blob = new Blob([JSON.stringify(data)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `Sothuchi_Backup_${new Date().toISOString().slice(0,10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); };
             const handleRestore = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { try { const data = JSON.parse(event.target.result); if (data.incomes && data.expenses && confirm(`Khôi phục bản sao lưu?`)) { saveData(data.incomes, data.expenses, data.fixedTemplate || [], data.investments || [], data.customCategories || []); alert('Thành công!'); } } catch (err) { alert('Lỗi file!'); } }; reader.readAsText(file); e.target.value = null; };
             
-            // Re-integrate Smart Suggestion Logic
+            // --- NEW: Category Spend Stats (Thay thế Gợi ý cũ) ---
             useEffect(() => {
-                if (!expenseCategory) { setSuggestion(0); return; }
-                let history = expenses.filter(e => e.category === expenseCategory);
-                if (history.length > 0) {
-                    history.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    const recentHistory = history.slice(0, 10);
-                    const total = recentHistory.reduce((sum, item) => sum + item.amount, 0);
-                    setSuggestion(Math.round(total / recentHistory.length));
-                } else { setSuggestion(0); }
-            }, [expenseCategory, expenses]);
+                if (!expenseCategory) { setCategorySpent(0); return; }
+                // Lọc trong THÁNG ĐANG XEM (viewDate)
+                const currentMonthExpenses = expenses.filter(e => {
+                    if (e.category !== expenseCategory) return false;
+                    const d = new Date(e.date);
+                    return d >= startDate && d <= endDate;
+                });
+                const total = currentMonthExpenses.reduce((sum, item) => sum + item.amount, 0);
+                setCategorySpent(total);
+            }, [expenseCategory, expenses, startDate, endDate]);
 
             const accumulatedSavings = useMemo(() => expenses.filter(e => e.category === "Tiền Tiết Kiệm").reduce((acc, curr) => acc + curr.amount, 0), [expenses]);
-            const savingsHistory = useMemo(() => expenses.filter(e => e.category === "Tiền Tiết Kiệm").sort((a, b) => new Date(b.date) - new Date(a.date)), [expenses]);
+            const investedAmount = useMemo(() => investments.filter(i => i.status === 'active').reduce((acc, curr) => acc + curr.amount, 0), [investments]);
+            const availableCapital = accumulatedSavings - investedAmount;
+            const expectedInterest = useMemo(() => { const amt = parseAmount(invAmount); const rate = parseFloat(invRate) || 0; if (amt <= 0 || rate <= 0 || invTerm <= 0) return 0; return Math.round(amt * (rate / 100) * (invTerm / 12)); }, [invAmount, invRate, invTerm]);
+            const handleAddInvestment = () => { const amt = parseAmount(invAmount); const rate = parseFloat(invRate); if (!invBank || amt <= 0 || !rate) { alert('Vui lòng nhập đủ thông tin'); return; } if (amt > availableCapital) { if(!confirm('Số tiền gửi lớn hơn vốn nhàn rỗi. Tiếp tục?')) return; } const startDate = new Date(); const endDate = new Date(startDate); endDate.setMonth(startDate.getMonth() + parseInt(invTerm)); const newInv = { id: Date.now(), bank: invBank, amount: amt, term: parseInt(invTerm), rate: rate, startDate: startDate.toISOString(), endDate: endDate.toISOString(), expectedInterest: expectedInterest, status: 'active' }; saveData(incomes, expenses, fixedTemplate, [newInv, ...investments]); setInvAmount(''); setInvBank(''); setInvRate(''); alert('Đã mở sổ tiết kiệm!'); };
+            const toggleInvestmentStatus = (id) => { if(!confirm('Thay đổi trạng thái sổ?')) return; const newInvs = investments.map(inv => inv.id === id ? { ...inv, status: inv.status === 'active' ? 'closed' : 'active' } : inv); saveData(incomes, expenses, fixedTemplate, newInvs); };
+            useEffect(() => { if (invBank && invTerm && BANK_DATA[invBank]) { const rates = BANK_DATA[invBank].rates; const exactRate = rates[invTerm]; if (exactRate) setInvRate(exactRate); } }, [invBank, invTerm]);
+            const openBankWebsite = () => { if(invBank && BANK_DATA[invBank]) { window.open(BANK_DATA[invBank].url, '_blank'); } else { alert('Vui lòng chọn ngân hàng trước'); } };
             const sumIncomeMonth = incomes.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; }).reduce((a,c)=>a+c.amount,0);
             const sumExpenseMonth = expenses.filter(i => { const d = new Date(i.date); return d >= startDate && d <= endDate; }).reduce((a,c)=>a+c.amount,0);
             const balance = sumIncomeMonth - sumExpenseMonth;
             const isOverBudget = sumIncomeMonth > 0 && (sumExpenseMonth / sumIncomeMonth) > 0.9;
-
-            const handleChatSubmit = (e) => {
-                e.preventDefault();
-                if(!chatInput.trim()) return;
-                const text = chatInput.toLowerCase();
-                let foundAmount = 0; let foundCategory = ''; let foundType = 'expense'; let foundNote = '';
-                const amountRegex = /(\d+([.,]\d+)?)\s*(k|nghìn|ngàn|trăm|triệu|củ|lít)/;
-                const simpleNumberRegex = /\d+([.,]\d+)?/;
-                
-                if (amountRegex.test(text)) {
-                    const match = text.match(amountRegex);
-                    let val = parseFloat(match[1].replace(',', '.'));
-                    const unit = match[3];
-                    if (['k', 'nghìn', 'ngàn'].includes(unit)) val *= 1000;
-                    else if (unit === 'trăm') val *= 100;
-                    else if (['triệu', 'củ'].includes(unit)) val *= 1000000;
-                    else if (unit === 'lít') val *= 100000;
-                    foundAmount = val;
-                } else if (simpleNumberRegex.test(text)) {
-                    const match = text.match(simpleNumberRegex);
-                    let val = parseFloat(match[0].replace(',', '.'));
-                    if (val < 1000) val *= 1000; 
-                    foundAmount = val;
-                }
-
-                // 1. Quét mục tự tạo (Custom Categories) trước
-                const customCatLower = customCategories.map(c => c.toLowerCase());
-                for (const cat of customCatLower) {
-                    if (text.includes(cat)) {
-                        // Tìm thấy trong custom, lấy tên gốc (viết hoa đúng)
-                        foundCategory = customCategories.find(c => c.toLowerCase() === cat);
-                        break;
-                    }
-                }
-
-                // 2. Nếu chưa thấy, quét từ khóa cố định
-                if (!foundCategory) {
-                    if (text.includes('lương') || text.includes('thưởng') || text.includes('thu nhập')) { foundType = 'income'; foundCategory = 'Lương/Thưởng'; } 
-                    else { 
-                        for (const [key, cat] of Object.entries(KEYWORDS_MAP)) { 
-                            if (text.includes(key)) { foundCategory = cat; if (cat === "Nợ") foundType = 'expense'; break; } 
-                        } 
-                    }
-                }
-
-                // 3. Lấy Note (bỏ tiền và số)
-                foundNote = text.replace(amountRegex, '').replace(simpleNumberRegex, '').trim();
-
-                setActiveTab('add');
-                if (foundType === 'income') {
-                    if (foundAmount) setIncomeAmount(Number(foundAmount).toLocaleString('vi-VN'));
-                    if (foundCategory) setIncomeSource(foundCategory);
-                    setIncomeNote(foundNote);
-                } else {
-                    if (foundCategory) {
-                        setExpenseCategory(foundCategory);
-                        // Nếu đã chọn được mục, KHÔNG điền Note (để trống theo yêu cầu)
-                        setExpenseNote(""); 
-                    } else {
-                        // Không tìm thấy mục -> Báo lỗi & Điền Note tạm
-                        setExpenseCategory("");
-                        setExpenseNote(foundNote);
-                        alert("Chưa rõ mục nào, vui lòng chọn lại!");
-                    }
-                    if (foundAmount) setExpenseAmount(Number(foundAmount).toLocaleString('vi-VN'));
-                }
-                setChatInput(""); setShowChat(false);
-            };
+            const savingsHistory = useMemo(() => expenses.filter(e => e.category === "Tiền Tiết Kiệm").sort((a, b) => new Date(b.date) - new Date(a.date)), [expenses]);
 
             return (
                 <div className="min-h-screen pb-24 md:pb-0 relative font-sans">
@@ -371,9 +283,9 @@
 
                         <div className="px-4 -mt-6 relative z-10">
                             <div className="bg-white rounded-xl shadow-xl p-1.5 flex border border-gray-100 overflow-x-auto no-scrollbar">
-                                {['add', 'report', 'savings', 'history', 'settings'].map(tab => (
+                                {['add', 'report', 'invest', 'history', 'settings'].map(tab => (
                                     <button key={tab} onClick={()=>{setActiveTab(tab); resetForm();}} className={`flex-1 min-w-[70px] py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all flex justify-center ${activeTab === tab ? 'bg-slate-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}>
-                                        {tab === 'add' ? 'Nhập' : tab === 'report' ? 'Báo Cáo' : tab === 'savings' ? 'Tiết Kiệm' : tab === 'history' ? 'Lịch Sử' : <Settings size={16}/>}
+                                        {tab === 'add' ? 'Nhập' : tab === 'report' ? 'Báo Cáo' : tab === 'invest' ? 'Tiết Kiệm' : tab === 'history' ? 'Lịch Sử' : <Settings size={16}/>}
                                     </button>
                                 ))}
                             </div>
@@ -408,7 +320,13 @@
                                                 </div>
                                             </div>
                                             
-                                            {suggestion > 0 && !editingId && <div onClick={applySuggestion} className="bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-2 rounded-xl text-xs flex items-center justify-between gap-2 cursor-pointer shadow-sm hover:bg-yellow-200 transition-colors animate-fadeIn"><div className="flex items-center gap-2"><Lightbulb size={16} className="text-yellow-600 fill-yellow-500"/><span>Gợi ý: <strong>{formatCurrency(suggestion)} VNĐ</strong></span></div><span className="text-[10px] bg-white border border-yellow-300 px-2 py-1 rounded text-yellow-700 font-bold uppercase">Chọn</span></div>}
+                                            {/* NEW: THỐNG KÊ CHI TIÊU HIỆN TẠI (Thay thế Gợi ý cũ) */}
+                                            {expenseCategory && !editingId && (
+                                                <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-xl text-xs flex items-center justify-between gap-2 shadow-sm animate-fadeIn">
+                                                    <div className="flex items-center gap-2"><Activity size={16}/> <span>Tháng này đã chi:</span></div>
+                                                    <span className="font-bold text-sm">{formatCurrency(categorySpent)} VNĐ</span>
+                                                </div>
+                                            )}
                                             
                                             <input type="text" placeholder="Ghi chú (Phở bò, Cafe...)" value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm italic text-gray-600"/>
                                             
@@ -441,36 +359,43 @@
                                 </div>
                             )}
 
-                            {/* TAB: TIẾT KIỆM (SIMPLE - Đã sửa lại đúng ý bạn) */}
-                            {activeTab === 'savings' && (
+                            {/* TAB: TIẾT KIỆM (SIMPLE) */}
+                            {activeTab === 'invest' && (
                                 <div className="space-y-6 animate-fadeIn mt-2">
-                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center">
-                                        <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center text-pink-600 mx-auto mb-4"><PiggyBank size={32}/></div>
-                                        <h3 className="text-sm text-gray-500 font-bold uppercase tracking-wider">Tổng Quỹ Tiết Kiệm Hiện Có</h3>
-                                        <p className="text-4xl font-extrabold text-gray-800 mt-2">{formatCurrency(accumulatedSavings)} VNĐ</p>
-                                        <p className="text-xs text-gray-400 mt-2 italic">Được tính từ tất cả các khoản chi "Tiền Tiết Kiệm"</p>
+                                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                        <div className="flex items-center gap-3 mb-4"><div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center text-pink-600"><PiggyBank size={20}/></div><div><p className="text-xs text-gray-500 font-bold uppercase">Tổng vốn tích lũy</p><p className="text-lg font-bold text-gray-800">{formatCurrency(accumulatedSavings)} VNĐ</p></div></div>
+                                        <div className="flex gap-4 border-t pt-4">
+                                            <div className="flex-1"><p className="text-[10px] text-gray-400 font-bold uppercase">Đang gửi</p><p className="text-sm font-bold text-blue-600">{formatCurrency(investedAmount)} VNĐ</p></div>
+                                            <div className="flex-1 text-right"><p className="text-[10px] text-gray-400 font-bold uppercase">Vốn nhàn rỗi</p><p className="text-sm font-bold text-green-600">{formatCurrency(availableCapital)} VNĐ</p></div>
+                                        </div>
                                     </div>
 
-                                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                        <div className="p-4 bg-gray-50 border-b border-gray-100">
-                                            <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2"><History size={16}/> Lịch sử nộp quỹ</h3>
+                                    <div className="bg-white border border-blue-100 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div><h3 className="font-bold text-blue-800 flex items-center gap-2 mb-3"><TrendingUp size={18}/> Mở Sổ Tiết Kiệm</h3>
+                                        <div className="space-y-3 pl-2">
+                                            <div className="flex gap-2 items-center">
+                                                <select value={invBank} onChange={e=>setInvBank(e.target.value)} className="flex-1 p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700">
+                                                    <option value="">Chọn Ngân hàng</option>
+                                                    {Object.keys(BANK_DATA).map(b => <option key={b} value={b}>{b}</option>)}
+                                                    <option value="Khác">Khác</option>
+                                                </select>
+                                                <button onClick={openBankWebsite} className="p-2 bg-blue-100 text-blue-600 rounded-lg" title="Tra cứu lãi suất"><Globe size={18}/></button>
+                                            </div>
+                                            <div className="flex gap-2"><input type="text" inputMode="numeric" placeholder="Số tiền..." value={invAmount} onChange={e=>handleAmountInput(e.target.value, setInvAmount)} className="flex-1 p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700"/></div>
+                                            <div className="flex gap-2"><select value={invTerm} onChange={e=>setInvTerm(e.target.value)} className="w-1/2 p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700"><option value="1">1 Tháng</option><option value="3">3 Tháng</option><option value="6">6 Tháng</option><option value="9">9 Tháng</option><option value="12">12 Tháng</option><option value="24">24 Tháng</option></select><div className="flex-1 relative"><input type="number" placeholder="%/Năm" value={invRate} onChange={e=>setInvRate(e.target.value)} className="w-full p-2 bg-gray-50 border-none rounded-lg text-sm font-bold text-gray-700"/></div></div>
+                                            {expectedInterest > 0 && <div className="bg-blue-50 p-2 rounded-lg text-xs text-blue-700 flex justify-between items-center border border-blue-100"><span>Lãi dự kiến:</span><span className="font-bold text-sm">+{formatCurrency(expectedInterest)} VNĐ</span></div>}
+                                            <button onClick={handleAddInvestment} className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 flex justify-center items-center gap-2 text-sm"><Plus size={16}/> Mở Sổ</button>
                                         </div>
-                                        <div className="max-h-[50vh] overflow-y-auto">
-                                            {savingsHistory.length === 0 ? <div className="p-10 text-center text-gray-400 text-sm">Chưa có khoản tiết kiệm nào.</div> :
-                                                savingsHistory.map((item) => (
-                                                    <div key={item.id} className="p-4 flex justify-between items-center hover:bg-gray-50 border-b border-gray-50 last:border-0">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-600"><TrendingUp size={18}/></div>
-                                                            <div>
-                                                                <p className="font-bold text-gray-800 text-sm">Nộp tiết kiệm</p>
-                                                                <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5"><CalendarIcon size={10}/> {formatDate(item.date)}</p>
-                                                            </div>
-                                                        </div>
-                                                        <span className="font-bold text-green-600 text-sm">+{formatCurrency(item.amount)} VNĐ</span>
-                                                    </div>
-                                                ))
-                                            }
-                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase ml-1">Danh sách Sổ Tiết Kiệm</h4>
+                                        {investments.length === 0 ? <div className="text-center py-8 text-gray-300 text-sm">Chưa có sổ nào</div> : 
+                                            investments.map(inv => (
+                                                <div key={inv.id} className={`bg-white p-4 rounded-xl shadow-sm border-l-4 ${inv.status === 'active' ? 'border-l-green-500' : 'border-l-gray-300 bg-gray-50'} relative`}>
+                                                    <div className="flex justify-between items-start mb-2"><div><p className="font-bold text-gray-800">{inv.bank}</p><p className="text-[10px] text-gray-400">{formatDate(inv.startDate)} - {formatDate(inv.endDate)}</p></div><div className="text-right"><p className={`font-bold ${inv.status === 'active' ? 'text-green-600' : 'text-gray-500'}`}>{formatCurrency(inv.amount)}</p><p className="text-xs text-blue-500 font-medium">+{formatCurrency(inv.expectedInterest)} lãi</p></div></div><div className="flex justify-between items-center text-xs mt-2 pt-2 border-t border-gray-100"><span className="font-bold text-gray-500">{inv.term} Tháng • {inv.rate}%/Năm</span><button onClick={()=>toggleInvestmentStatus(inv.id)} className={`px-3 py-1 rounded-full font-bold ${inv.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>{inv.status === 'active' ? 'Đang gửi' : 'Đã tất toán'}</button></div>
+                                                </div>
+                                            ))
+                                        }
                                     </div>
                                 </div>
                             )}
@@ -513,31 +438,22 @@
                             <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
                                 <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
                                     <div className="p-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center"><h3 className="font-bold text-purple-800 flex items-center gap-2">Cài đặt khoản cố định</h3><button onClick={()=>setShowFixedConfig(false)}><X size={20} className="text-purple-400"/></button></div>
-                                    <div className="p-4 overflow-y-auto flex-1 space-y-3"><p className="text-xs text-gray-500 mb-2 italic">Nhập số tiền cho các mục cố định hàng tháng (Để trống nếu không có).</p>{FIXED_CATEGORIES.map(cat => (<div key={cat} className="flex items-center justify-between gap-2 border-b border-gray-50 pb-2"><span className="text-sm font-medium text-gray-700 flex-1">{cat}</span><input type="text" inputMode="numeric" placeholder="0" value={tempFixedList[cat] ? Number(tempFixedList[cat]).toLocaleString('vi-VN') : ''} onChange={(e) => handleFixedAmountChange(cat, e.target.value)} className="w-24 p-2 bg-gray-50 border border-gray-200 rounded text-right text-sm font-bold text-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-500" /></div>))}</div>
+                                    <div className="p-4 overflow-y-auto flex-1 space-y-3"><p className="text-xs text-gray-500 mb-2 italic">Nhập số tiền cho các mục cố định hàng tháng (Để trống nếu không có).</p>{ALL_CATEGORIES.map(cat => (<div key={cat} className="flex items-center justify-between gap-2 border-b border-gray-50 pb-2"><span className="text-sm font-medium text-gray-700 flex-1">{cat}</span><input type="text" inputMode="numeric" placeholder="0" value={tempFixedList[cat] ? Number(tempFixedList[cat]).toLocaleString('vi-VN') : ''} onChange={(e) => handleFixedAmountChange(cat, e.target.value)} className="w-24 p-2 bg-gray-50 border border-gray-200 rounded text-right text-sm font-bold text-purple-700 focus:outline-none focus:ring-1 focus:ring-purple-500" /></div>))}</div>
                                     <div className="p-4 border-t border-gray-100"><button onClick={saveFixedConfig} className="w-full py-3 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-all">Lưu Cấu Hình</button></div>
                                 </div>
                             </div>
                         )}
 
-                        {/* CHAT INPUT MODAL - TOP POSITION */}
-                        {showChat && (
-                            <div className="fixed inset-0 bg-black/60 z-[70] flex items-start justify-center animate-fadeIn pt-10 px-4">
-                                <div className="bg-white w-full max-w-md p-4 rounded-2xl shadow-2xl relative">
-                                    <div className="flex justify-between items-center mb-2"><h3 className="text-sm font-bold text-gray-700 flex items-center gap-2"><MessageCircle size={16} className="text-blue-500"/> Nhập liệu nhanh</h3><button onClick={()=>setShowChat(false)}><X size={20} className="text-gray-400"/></button></div>
-                                    <p className="text-[10px] text-gray-400 mb-3 italic">Gõ nhanh: "Ăn phở 50k", "Xăng 100", "Lương 10tr"...</p>
-                                    <form onSubmit={handleChatSubmit} className="flex gap-2"><input type="text" value={chatInput} onChange={e=>setChatInput(e.target.value)} placeholder="Nhập nội dung..." className="flex-1 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" autoFocus /><button type="submit" className="p-3 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700"><Send size={20}/></button></form>
-                                </div>
+                        <div onClick={()=>setShowReloadConfirm(true)} className={`fixed bottom-8 right-4 z-50 flex flex-col items-center gap-1 cursor-pointer transition-all duration-300 ${balance===0?'opacity-80':'opacity-100'}`}>
+                            <div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm border border-white/10">Tổng Tiền Còn Lại</div>
+                            <div className={`shadow-2xl rounded-full px-5 py-3 flex items-center gap-3 border-2 border-white/20 backdrop-blur-lg transform hover:scale-105 active:scale-95 transition-all ${balance>=0?'bg-gradient-to-r from-blue-600 to-cyan-500':'bg-gradient-to-r from-red-600 to-orange-500'}`}>
+                                <div className="bg-white/20 p-1.5 rounded-full"><Wallet size={20} className="text-white"/></div>
+                                <div className="flex flex-col items-start"><span className="text-white font-extrabold text-lg leading-none">{formatCurrency(balance)} <span className="text-xs font-normal opacity-80">VNĐ</span></span></div>
                             </div>
-                        )}
-
-                        {/* FLOATING BUBBLES */}
-                        <div className="fixed bottom-8 w-full px-4 z-50 flex justify-between items-end pointer-events-none safe-pb">
-                            <div onClick={()=>setShowChat(true)} className="pointer-events-auto flex flex-col items-center gap-1 cursor-pointer transition-all duration-300 transform hover:scale-105 active:scale-95"><div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm border border-white/10">Chat</div><div className="shadow-2xl rounded-full w-12 h-12 flex items-center justify-center border-2 border-white/20 backdrop-blur-lg bg-gradient-to-r from-purple-600 to-indigo-600"><MessageCircle size={24} className="text-white"/></div></div>
-                            <div onClick={()=>setShowReloadConfirm(true)} className={`pointer-events-auto flex flex-col items-center gap-1 cursor-pointer transition-all duration-300 transform hover:scale-105 active:scale-95 ${balance===0?'opacity-80':'opacity-100'}`}><div className="bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm border border-white/10">Tổng Tiền Còn Lại</div><div className={`shadow-2xl rounded-full px-5 py-3 flex items-center gap-3 border-2 border-white/20 backdrop-blur-lg ${balance>=0?'bg-gradient-to-r from-blue-600 to-cyan-500':'bg-gradient-to-r from-red-600 to-orange-500'}`}><div className="bg-white/20 p-1.5 rounded-full"><Wallet size={20} className="text-white"/></div><div className="flex flex-col items-start"><span className="text-white font-extrabold text-lg leading-none">{formatCurrency(balance)} <span className="text-xs font-normal opacity-80">VNĐ</span></span></div></div></div>
                         </div>
 
                         {showReloadConfirm && (
-                            <div className="fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+                            <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
                                 <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-xs w-full text-center border border-gray-100">
                                     <div className="bg-slate-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600"><RefreshCw size={24} /></div>
                                     <h3 className="font-bold text-lg text-slate-800 mb-2">Tải lại ứng dụng?</h3>
