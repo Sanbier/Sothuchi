@@ -320,6 +320,20 @@
                 setFixedPaymentInputs(prev => ({...prev, [item.category]: ''}));
             };
 
+            // Hàm xóa mục cố định khỏi bóng chat (và template)
+            const handleRemoveFixedItem = (catToRemove) => {
+                if(confirm(`Bạn có chắc muốn xóa "${catToRemove}" khỏi danh sách theo dõi cố định?\n(Dữ liệu chi tiêu cũ vẫn được giữ nguyên)`)) {
+                    const newTemplate = fixedTemplate.filter(t => t.category !== catToRemove);
+                    
+                    // Cập nhật cả danh sách temp để đồng bộ
+                    const newTemp = { ...tempFixedList };
+                    delete newTemp[catToRemove];
+                    setTempFixedList(newTemp);
+
+                    saveData(incomes, expenses, newTemplate, categories, debts, fixedTracking);
+                }
+            };
+
             const handleAddIncome = () => { 
                 const amt = parseAmount(incomeAmount); 
                 if(!incomeSource || amt <= 0) return; 
@@ -845,9 +859,15 @@
                                             return (
                                                 <div key={item.category} className={`border-b border-gray-100 pb-3 ${isFullyPaid ? 'opacity-50' : ''}`}>
                                                     <div className="flex justify-between items-start mb-1">
-                                                        <div>
-                                                            <span className="text-sm font-bold text-gray-800 block">{item.category}</span>
-                                                            <span className="text-[10px] text-gray-400 italic">Kế hoạch: {formatCurrency(item.amount)}</span>
+                                                        <div className="flex items-start gap-2">
+                                                            {/* Nút Xóa Mục Cố Định */}
+                                                            <button onClick={() => handleRemoveFixedItem(item.category)} className="mt-0.5 text-gray-300 hover:text-red-500 transition-colors btn-effect" title="Xóa khỏi danh sách cố định">
+                                                                <X size={14}/>
+                                                            </button>
+                                                            <div>
+                                                                <span className="text-sm font-bold text-gray-800 block">{item.category}</span>
+                                                                <span className="text-[10px] text-gray-400 italic">Kế hoạch: {formatCurrency(item.amount)}</span>
+                                                            </div>
                                                         </div>
                                                         <div className="text-right">
                                                             <span className={`text-xs font-bold block ${isFullyPaid ? 'text-green-600' : 'text-orange-500'}`}>
