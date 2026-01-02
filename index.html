@@ -533,7 +533,14 @@
                                             )}
 
                                             {expenseCategory && expenseCategory !== DEBT_CATEGORY_NAME && !editingId && !isCategoryManageMode && (
-                                                <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-xl text-xs flex items-center justify-between gap-2 shadow-sm animate-fadeIn">
+                                                <div 
+                                                    onClick={() => {
+                                                        setActiveTab('history');
+                                                        setFilterCategory(expenseCategory);
+                                                        setSearchTerm('');
+                                                    }}
+                                                    className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-xl text-xs flex items-center justify-between gap-2 shadow-sm animate-fadeIn cursor-pointer hover:bg-blue-100 transition-colors btn-effect"
+                                                >
                                                     <div className="flex items-center gap-2"><Activity size={16}/> <span>Tháng này đã chi:</span></div>
                                                     <span className="font-bold text-sm">{formatCurrency(categorySpent)} VNĐ</span>
                                                 </div>
@@ -574,7 +581,19 @@
 
                                             <div className="space-y-3">
                                                 {debts.length === 0 ? <div className="text-center py-10 text-gray-400 text-sm">Chưa có bản ghi nợ nào.</div> :
-                                                debts.map(item => {
+                                                [...debts]
+                                                    .sort((a,b) => {
+                                                        const remA = a.total - a.paid;
+                                                        const remB = b.total - b.paid;
+                                                        const isDoneA = remA <= 0;
+                                                        const isDoneB = remB <= 0;
+                                                        // Ưu tiên: Chưa hoàn thành lên đầu
+                                                        if (isDoneA && !isDoneB) return 1; 
+                                                        if (!isDoneA && isDoneB) return -1;
+                                                        // Sau đó ưu tiên tổng tiền nợ cao nhất lên đầu
+                                                        return b.total - a.total;
+                                                    })
+                                                    .map(item => {
                                                     const remaining = item.total - item.paid;
                                                     const progress = item.total > 0 ? (item.paid / item.total) * 100 : 0;
                                                     return (
@@ -600,7 +619,9 @@
                                                                 </div>
                                                                 <div className="flex justify-between items-end">
                                                                     <span className="text-[10px] font-bold uppercase text-gray-400">Còn lại</span>
-                                                                    <span className={`font-bold text-lg ${remaining <= 0 ? 'text-green-600' : 'text-orange-600'}`}>{formatCurrency(remaining)} VNĐ</span>
+                                                                    <span className={`font-bold text-lg ${remaining <= 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                                                                        {remaining <= 0 ? '0 VNĐ (Đã Hoàn Thành)' : formatCurrency(remaining) + ' VNĐ'}
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -798,7 +819,7 @@
                         )}
 
                         {/* Floating Action Button - Cố định (Góc Trái) */}
-                        <div onClick={()=>setShowFixedTrackingModal(true)} className="fixed bottom-24 left-4 z-50 flex flex-col items-center gap-1 cursor-pointer group">
+                        <div onClick={()=>setShowFixedTrackingModal(true)} className="fixed bottom-8 left-4 z-50 flex flex-col items-center gap-1 cursor-pointer group">
                              <div className="bg-purple-600 shadow-xl rounded-full p-3 border-2 border-white transform group-hover:scale-110 transition-all btn-effect">
                                 <MessageCircle size={24} className="text-white"/>
                             </div>
