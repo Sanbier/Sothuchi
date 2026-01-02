@@ -63,18 +63,17 @@
 
         const DEBT_CATEGORY_NAME = "Nợ (Vay - Trả Góp)";
         
-        // Các danh mục tiết kiệm mới
         const SAVING_CATEGORIES = [
-            "Tiết Kiệm Mục Tiêu", // Mua đất, mua nhà
-            "Tiết Kiệm Ngắn Hạn", // Du lịch, mua đồ
-            "Quỹ Khẩn Cấp"        // Đau ốm, tai nạn
+            "Tiết Kiệm Mục Tiêu", 
+            "Tiết Kiệm Ngắn Hạn", 
+            "Quỹ Khẩn Cấp"        
         ];
 
         const DEFAULT_CATEGORIES = [
             "Ăn (Sáng/Trưa/Tối)", "Ăn vặt/Nước ngọt", "Wi-Fi & Điện", "Cưới hỏi & Ma chay", 
             "Học phí cho Con", "Bỉm cho Con", "Sữa cho Con", "Xăng xe", 
             "Rác thải sinh hoạt", "Nhu Yếu Phẩm", "Đồ dùng Y Tế", 
-            ...SAVING_CATEGORIES, // Thay thế "Tiền Tiết Kiệm" bằng 3 mục này
+            ...SAVING_CATEGORIES,
             "Tiền Cá Nhân", DEBT_CATEGORY_NAME, "Mua Sắm"
         ];
 
@@ -366,16 +365,37 @@
             const deleteItem = (id, type) => { if(confirm('Bạn có chắc muốn xóa?')) { const newIncomes = type === 'income' ? incomes.filter(i => i.id !== id) : incomes; const newExpenses = type === 'expense' ? expenses.filter(e => e.id !== id) : expenses; saveData(newIncomes, newExpenses); }};
             
             const handleAddCustomCategory = () => { const newCat = prompt("Nhập tên mục chi tiêu mới:"); if (newCat && newCat.trim()) { const trimmedCat = newCat.trim(); if (categories.includes(trimmedCat)) { alert("Mục này đã tồn tại!"); return; } saveData(incomes, expenses, fixedTemplate, [...categories, trimmedCat], debts); } };
+            
             const handleEditCategory = (oldCat) => {
                 const newCat = prompt("Sửa tên mục chi tiêu:", oldCat);
                 if (newCat && newCat.trim() && newCat !== oldCat) {
-                    if (categories.includes(newCat.trim())) { alert("Tên mục bị trùng!"); return; }
-                    const newCats = categories.map(c => c === oldCat ? newCat.trim() : c);
-                    if(confirm("Lưu ý: Việc đổi tên này chỉ áp dụng cho việc nhập liệu mới. Lịch sử cũ vẫn giữ tên cũ. Tiếp tục?")) {
-                        saveData(incomes, expenses, fixedTemplate, newCats, debts);
+                    const trimmedNew = newCat.trim();
+                    if (categories.includes(trimmedNew)) { alert("Tên mục bị trùng!"); return; }
+                    
+                    if(confirm(`Bạn có chắc muốn đổi tên "${oldCat}" thành "${trimmedNew}"?\n\nHệ thống sẽ cập nhật tên này trong toàn bộ lịch sử chi tiêu, các khoản cố định và dữ liệu theo dõi.`)) {
+                        // 1. Cập nhật danh sách Category
+                        const newCats = categories.map(c => c === oldCat ? trimmedNew : c);
+                        
+                        // 2. Cập nhật trong Lịch sử Expenses
+                        const newExpenses = expenses.map(e => e.category === oldCat ? { ...e, category: trimmedNew } : e);
+
+                        // 3. Cập nhật trong Template cố định (nếu có)
+                        const newFixedTemplate = fixedTemplate.map(t => t.category === oldCat ? { ...t, category: trimmedNew } : t);
+
+                        // 4. Cập nhật trong Tracking cố định (Dữ liệu bóng chat)
+                        const newFixedTracking = { ...fixedTracking };
+                        Object.keys(newFixedTracking).forEach(key => {
+                            if (Array.isArray(newFixedTracking[key])) {
+                                newFixedTracking[key] = newFixedTracking[key].map(c => c === oldCat ? trimmedNew : c);
+                            }
+                        });
+
+                        saveData(incomes, newExpenses, newFixedTemplate, newCats, debts, newFixedTracking);
+                        alert("Đã cập nhật tên danh mục thành công!");
                     }
                 }
             };
+            
             const handleDeleteCategory = (catToDelete) => {
                 if(confirm(`Bạn có chắc muốn xóa mục "${catToDelete}"?`)) {
                     const newCats = categories.filter(c => c !== catToDelete);
@@ -401,6 +421,15 @@
             const handleEditDebt = (item) => { setIsEditingDebt(item.id); setDebtName(item.name); setDebtTotal(Number(item.total).toLocaleString('vi-VN')); setDebtPaid(Number(item.paid).toLocaleString('vi-VN')); setDebtNote(item.note || ''); setShowDebtForm(true); };
             const handleDeleteDebt = (id) => { if (confirm("Xóa bản ghi nợ này?")) { const newDebts = debts.filter(d => d.id !== id); saveData(incomes, expenses, fixedTemplate, categories, newDebts); } };
 
+            const resetMonthlyTracking = () => {
+                if(confirm("Xóa dữ liệu theo dõi của tháng này? (Các khoản đã chi trong Lịch sử vẫn giữ nguyên, chỉ reset trạng thái đóng tiền ở đây).")) {
+                    const trackingKey = `${viewDate.getFullYear()}-${viewDate.getMonth()}`;
+                    const newTracking = { ...fixedTracking };
+                    delete newTracking[trackingKey]; 
+                    saveData(incomes, expenses, fixedTemplate, categories, debts, newTracking);
+                }
+            };
+
             useEffect(() => {
                 if (!expenseCategory) { setCategorySpent(0); return; }
                 const currentMonthExpenses = expenses.filter(e => {
@@ -412,7 +441,6 @@
                 setCategorySpent(total);
             }, [expenseCategory, expenses, startDate, endDate]);
 
-            // Tính toán cho Tab Heo Đất (Các quỹ tích lũy)
             const savingsBreakdown = useMemo(() => {
                 const result = {};
                 SAVING_CATEGORIES.forEach(cat => result[cat] = 0);
@@ -468,7 +496,19 @@
                         <div className="px-4 -mt-6 relative z-10">
                             <div className="bg-white rounded-xl shadow-xl p-1.5 flex border border-gray-100 overflow-x-auto no-scrollbar">
                                 {['add', 'debt', 'report', 'savings', 'history', 'settings'].map(tab => (
-                                    <button key={tab} onClick={()=>{setActiveTab(tab); resetForm();}} className={`flex-1 min-w-[60px] py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all btn-effect flex justify-center flex-col items-center gap-1 ${activeTab === tab ? 'bg-slate-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}>
+                                    <button 
+                                        key={tab} 
+                                        onClick={()=>{
+                                            setActiveTab(tab); 
+                                            resetForm();
+                                            // Reset bộ lọc khi bấm vào tab history (hoặc chuyển qua lại)
+                                            if (tab === 'history') {
+                                                setFilterCategory('all');
+                                                setSearchTerm('');
+                                            }
+                                        }} 
+                                        className={`flex-1 min-w-[60px] py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all btn-effect flex justify-center flex-col items-center gap-1 ${activeTab === tab ? 'bg-slate-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
+                                    >
                                         {tab === 'add' ? 'Nhập' : tab === 'debt' ? 'Sổ Nợ' : tab === 'report' ? 'Báo Cáo' : tab === 'savings' ? 'Heo Đất' : tab === 'history' ? 'Lịch Sử' : <Settings size={16}/>}
                                     </button>
                                 ))}
@@ -784,7 +824,11 @@
                                 <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
                                     <div className="p-4 bg-purple-50 border-b border-purple-100 flex justify-between items-center">
                                         <h3 className="font-bold text-purple-800 flex items-center gap-2">Chi cố định tháng {viewDate.getMonth() + 1}</h3>
-                                        <button onClick={()=>setShowFixedTrackingModal(false)}><X size={20} className="text-purple-400"/></button>
+                                        <div className="flex gap-2">
+                                            {/* Nút xoá dữ liệu trong bóng chat */}
+                                            <button onClick={resetMonthlyTracking} className="text-red-400 hover:text-red-600 transition-colors"><Trash2 size={20}/></button>
+                                            <button onClick={()=>setShowFixedTrackingModal(false)}><X size={20} className="text-purple-400"/></button>
+                                        </div>
                                     </div>
                                     <div className="p-4 overflow-y-auto flex-1 space-y-4">
                                         {fixedTemplate.length === 0 && <p className="text-center text-sm text-gray-400 py-4">Chưa cài đặt mục cố định nào.</p>}
