@@ -353,28 +353,49 @@
                 let linkedDebtId = null;
                 let actionType = null;
                 
+                // --- XỬ LÝ LOGIC NỢ ---
                 if (expenseCategory === DEBT_CATEGORY_NAME) {
                     if (!selectedDebtorId) { alert("Vui lòng chọn người liên quan!"); return; }
                     const debtItem = debts.find(d => d.id === Number(selectedDebtorId));
                     if (debtItem) {
                         linkedDebtId = debtItem.id;
+
+                        // Trường hợp 1: RECEIVABLE (Người ta nợ mình) -> Thu tiền (Nhận lại) -> LÀ THU NHẬP
                         if (debtItem.type === 'receivable') {
-                            // YÊU CẦU 2: Sửa thành "Nhận lại" => Tăng Paid (Tiền người ta trả mình)
                             const newPaid = debtItem.paid + amt;
-                            const updatedDebtItem = { ...debtItem, paid: newPaid, updatedAt: new Date().toISOString() };
-                            updatedDebts = debts.map(d => d.id === debtItem.id ? updatedDebtItem : d);
-                            finalNote = `Nhận lại nợ: ${debtItem.name} ${expenseNote ? '- ' + expenseNote : ''}`;
-                            actionType = 'collect'; // Sử dụng collect để deleteItem hoàn tác đúng logic
-                        } else {
-                            // Mình nợ người ta -> Mình chi -> Trả nợ -> Tăng Paid
+                            // Cập nhật sổ nợ (Tăng số tiền đã trả)
+                            updatedDebts = debts.map(d => d.id === debtItem.id ? { ...d, paid: newPaid, updatedAt: new Date().toISOString() } : d);
+                            
+                            // TẠO GIAO DỊCH THU NHẬP (Income) thay vì Expense
+                            const newItem = { 
+                                id: editingId || Date.now(), 
+                                source: `Thu nợ: ${debtItem.name}`, // Tên nguồn thu
+                                amount: amt, 
+                                date: getCombinedDate(expenseDate), 
+                                note: `Nhận lại nợ: ${debtItem.name} ${expenseNote ? '- ' + expenseNote : ''}`,
+                                relatedDebtId: linkedDebtId,
+                                debtAction: 'collect' // Action 'collect'
+                            }; 
+                            
+                            // Lưu vào Incomes, không lưu vào Expenses
+                            const newIncomes = [newItem, ...incomes];
+                            saveData(newIncomes, expenses, fixedTemplate, categories, updatedDebts);
+                            alert(`Đã ghi nhận thu nhập từ thu nợ và cập nhật sổ!`);
+                            resetForm();
+                            return; // Dừng hàm tại đây, không chạy xuống phần tạo Expense bên dưới
+                        } 
+                        
+                        // Trường hợp 2: PAYABLE (Mình nợ người ta) -> Trả tiền -> LÀ CHI PHÍ
+                        else {
                             const newPaid = debtItem.paid + amt;
-                            const updatedDebtItem = { ...debtItem, paid: newPaid, updatedAt: new Date().toISOString() };
-                            updatedDebts = debts.map(d => d.id === debtItem.id ? updatedDebtItem : d);
+                            updatedDebts = debts.map(d => d.id === debtItem.id ? { ...d, paid: newPaid, updatedAt: new Date().toISOString() } : d);
                             finalNote = `Trả nợ: ${debtItem.name} ${expenseNote ? '- ' + expenseNote : ''}`;
                             actionType = 'repay';
                         }
                     }
                 }
+                
+                // --- XỬ LÝ LOGIC CHI TIÊU THƯỜNG HOẶC TRẢ NỢ (PAYABLE) ---
                 const newItem = { 
                     id: editingId || Date.now(), 
                     category: expenseCategory, 
@@ -387,7 +408,7 @@
                 const newExpenses = editingId && editingType === 'expense' ? expenses.map(e => e.id === editingId ? newItem : e) : [newItem, ...expenses]; 
                 saveData(incomes, newExpenses, fixedTemplate, categories, updatedDebts); 
                 if(editingId) alert('Đã cập nhật!'); 
-                if (expenseCategory === DEBT_CATEGORY_NAME && !editingId) alert(`Đã lưu chi tiêu và cập nhật sổ nợ!`);
+                if (expenseCategory === DEBT_CATEGORY_NAME && !editingId) alert(`Đã lưu chi trả nợ và cập nhật sổ!`);
                 resetForm(); 
             };
             
