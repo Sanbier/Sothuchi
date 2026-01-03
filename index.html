@@ -612,7 +612,7 @@
                                                         {/* 2. Dòng ngăn cách nhẹ (nếu có cả 2 loại nợ) */}
                                                         {debts.some(d => d.type === 'payable' && (d.total - d.paid) > 0) && 
                                                          debts.some(d => d.type === 'receivable') && (
-                                                            <option disabled>───────────────</option>
+                                                            <option disabled>─────────────</option>
                                                         )}
 
                                                         {/* 3. Render danh sách Họ nợ (Cho vay thêm) */}
