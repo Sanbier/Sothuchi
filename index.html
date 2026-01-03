@@ -524,7 +524,14 @@
                     <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl relative">
                         {isOverBudget && <div className="bg-red-50 text-red-600 px-4 py-2 text-xs font-bold flex items-center justify-center gap-2 animate-pulse-red border-b border-red-100"><AlertTriangle size={16} /> CẢNH BÁO: Đã chi tiêu quá 90% thu nhập!</div>}
                         
-                        <div className={`bg-gradient-to-r ${isConnected ? 'from-blue-800 to-indigo-900' : 'from-slate-700 to-gray-800'} p-6 pb-8 text-white rounded-b-3xl shadow-lg transition-colors duration-500`}>
+                        <div className={`bg-gradient-to-r ${isConnected ? 'from-blue-800 to-indigo-900' : 'from-slate-700 to-gray-800'} p-6 pb-8 text-white rounded-b-3xl shadow-lg transition-colors duration-500 relative`}>
+                            {isConnected && (
+                                <div className="absolute top-4 right-4 flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full backdrop-blur-md">
+                                    <Cloud size={10} className="text-green-300"/>
+                                    <span className="text-[10px] font-bold text-green-100">Đã kết nối</span>
+                                </div>
+                            )}
+
                             <div className="flex items-center justify-between mb-4">
                                 <button onClick={()=>setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth()-1, 15))} className="p-2 text-white/70 hover:text-white btn-effect transition-all"><ChevronLeft size={24}/></button>
                                 <div className="text-center">
@@ -592,6 +599,15 @@
                                                 </div>
                                             </div>
                                             
+                                            {/* Fix: Hiển thị gợi ý đã chi */}
+                                            {expenseCategory && expenseCategory !== DEBT_CATEGORY_NAME && (
+                                                <div className="flex justify-end mt-1 mb-1 animate-fadeIn">
+                                                    <span className="text-[10px] bg-red-50 text-red-500 px-2 py-0.5 rounded border border-red-100">
+                                                        Tháng này đã chi: <b>{formatCurrency(categorySpent)} đ</b> cho mục này
+                                                    </span>
+                                                </div>
+                                            )}
+
                                             {expenseCategory === DEBT_CATEGORY_NAME && (
                                                 <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl animate-fadeIn">
                                                     <label className="text-[10px] font-bold text-blue-700 uppercase mb-1 block">Chọn người liên quan:</label>
@@ -938,3 +954,4 @@
     </script>
 </body>
 </html>
+
