@@ -144,8 +144,7 @@
             });
             
             const [incomeSource, setIncomeSource] = useState(''); const [incomeAmount, setIncomeAmount] = useState(''); const [incomeDate, setIncomeDate] = useState(getLocalToday()); const [incomeNote, setIncomeNote] = useState('');
-            const [isCollectingDebt, setIsCollectingDebt] = useState(false); // New: Checkbox for receiving debt
-
+            
             const [expenseCategory, setExpenseCategory] = useState(''); const [expenseAmount, setExpenseAmount] = useState(''); const [expenseDate, setExpenseDate] = useState(getLocalToday()); const [expenseNote, setExpenseNote] = useState('');
             const [selectedDebtorId, setSelectedDebtorId] = useState('');
             
@@ -199,7 +198,6 @@
                     }
 
                     const localDebts = JSON.parse(localStorage.getItem('family_debts') || '[]');
-                    // Migration: Ensure all debts have a type
                     const migratedDebts = localDebts.map(d => ({...d, type: d.type || 'payable'}));
 
                     setIncomes(localIncomes);
@@ -331,38 +329,18 @@
                 const amt = parseAmount(incomeAmount); 
                 if(!incomeSource || amt <= 0) return; 
                 
-                let updatedDebts = debts;
-                let finalNote = incomeNote;
-                let linkedDebtId = null;
-
-                // Xử lý khi thu nợ từ người khác
-                if (isCollectingDebt && selectedDebtorId) {
-                    const debtItem = debts.find(d => d.id === Number(selectedDebtorId));
-                    if (debtItem) {
-                        // Logic: Người khác trả mình -> Paid tăng -> Total giữ nguyên
-                        const newPaid = debtItem.paid + amt;
-                        const updatedDebtItem = { ...debtItem, paid: newPaid, updatedAt: new Date().toISOString() };
-                        updatedDebts = debts.map(d => d.id === debtItem.id ? updatedDebtItem : d);
-                        finalNote = `Thu nợ: ${debtItem.name} ${incomeNote ? '- ' + incomeNote : ''}`;
-                        linkedDebtId = debtItem.id;
-                    }
-                }
-
                 const newItem = { 
                     id: editingId || Date.now(), 
                     source: incomeSource, 
                     amount: amt, 
                     date: getCombinedDate(incomeDate), 
-                    note: finalNote,
-                    relatedDebtId: linkedDebtId, // Liên kết với ID nợ
-                    debtAction: 'collect' // Loại hành động để rollback
+                    note: incomeNote,
                 }; 
                 
                 const newIncomes = editingId && editingType === 'income' ? incomes.map(i => i.id === editingId ? newItem : i) : [newItem, ...incomes]; 
                 
-                saveData(newIncomes, expenses, fixedTemplate, categories, updatedDebts); 
+                saveData(newIncomes, expenses, fixedTemplate, categories, debts); 
                 if(editingId) alert('Đã cập nhật!'); 
-                if (linkedDebtId) alert(`Đã ghi nhận thu nhập và cập nhật sổ nợ!`);
                 resetForm(); 
             };
             
@@ -413,7 +391,7 @@
             };
             
             const resetForm = () => { 
-                setIncomeSource(''); setIncomeAmount(''); setIncomeNote(''); setIsCollectingDebt(false);
+                setIncomeSource(''); setIncomeAmount(''); setIncomeNote('');
                 setEditingId(null); setEditingType(null); 
                 setExpenseCategory(''); setExpenseAmount(''); setExpenseNote('');
                 setSelectedDebtorId('');
@@ -425,7 +403,6 @@
                 if(confirm('Bạn có chắc muốn xóa? Nếu khoản này liên quan đến Nợ, sổ nợ sẽ được hoàn tác lại.')) { 
                     let updatedDebts = debts;
                     
-                    // Logic hoàn tác tiền nợ khi xóa lịch sử
                     const itemToDelete = type === 'income' ? incomes.find(i => i.id === id) : expenses.find(e => e.id === id);
                     if (itemToDelete && itemToDelete.relatedDebtId) {
                         const debtItem = debts.find(d => d.id === itemToDelete.relatedDebtId);
@@ -515,8 +492,8 @@
                 setDebtNote(item.note || ''); 
                 setDebtType(item.type || 'payable');
                 setShowDebtForm(true); 
-                // Khi sửa, mặc định không tick auto để tránh người dùng sửa sai số liệu cũ bị trừ tiền oan. Chỉ tick nếu họ muốn.
-                setAutoCreateTransaction(false); 
+                // Fix: Bật autoCreateTransaction để khi sửa số liệu sẽ cộng trừ vào tổng tiền
+                setAutoCreateTransaction(true); 
             };
             const handleDeleteDebt = (id) => { if (confirm("Xóa bản ghi nợ này?")) { const newDebts = debts.filter(d => d.id !== id); saveData(incomes, expenses, fixedTemplate, categories, newDebts); } };
 
@@ -586,29 +563,14 @@
                                     <div className={`bg-white border border-green-100 rounded-2xl p-4 shadow-sm relative overflow-hidden ${editingId && editingType === 'expense' ? 'opacity-50 pointer-events-none' : ''}`}>
                                         <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div><div className="flex items-center gap-2 text-green-700 font-bold mb-3"><TrendingUp size={18}/> 1. Thu Nhập</div>
                                         <div className="space-y-3 pl-2">
-                                            {/* Phần chọn thu nợ */}
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <input type="checkbox" id="chkCollect" checked={isCollectingDebt} onChange={e=>setIsCollectingDebt(e.target.checked)} className="w-4 h-4 accent-green-600"/>
-                                                <label htmlFor="chkCollect" className="text-xs font-bold text-gray-600">Thu nợ từ người khác?</label>
-                                            </div>
-                                            
-                                            {isCollectingDebt ? (
-                                                <select value={selectedDebtorId} onChange={e=>setSelectedDebtorId(e.target.value)} className="w-full p-2 bg-green-50 border border-green-200 rounded-lg text-sm font-bold text-green-800 outline-none mb-2">
-                                                    <option value="">-- Chọn người trả nợ --</option>
-                                                    {debts.filter(d => d.type === 'receivable' && (d.total - d.paid) > 0).map(d => (
-                                                        <option key={d.id} value={d.id}>{d.name} (Còn nợ: {formatCurrency(d.total - d.paid)})</option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <input type="text" placeholder="Nguồn thu (Lương, thưởng...)" value={incomeSource} onChange={e=>setIncomeSource(e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl font-medium input-effect transition-all duration-200"/>
-                                            )}
-                                            
+                                            {/* Phần chọn thu nợ đã bị xóa theo yêu cầu */}
+                                            <input type="text" placeholder="Nguồn thu (Lương, thưởng...)" value={incomeSource} onChange={e=>setIncomeSource(e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl font-medium input-effect transition-all duration-200"/>
                                             <input type="text" placeholder="Ghi chú (Tùy chọn)" value={incomeNote} onChange={e=>setIncomeNote(e.target.value)} className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm italic text-gray-600 input-effect transition-all duration-200"/>
                                             <div className="flex gap-3">
                                                 <input type="text" inputMode="numeric" placeholder="0" value={incomeAmount} onChange={e=>handleAmountInput(e.target.value, setIncomeAmount)} className="w-1/2 p-3 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-lg h-12 input-effect transition-all duration-200"/>
                                                 <CustomDatePicker value={incomeDate} onChange={e=>setIncomeDate(e.target.value)} className="flex-1" />
                                             </div>
-                                            <button onClick={handleAddIncome} disabled={(!incomeSource && !isCollectingDebt) || !incomeAmount} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-200 flex justify-center items-center gap-2 btn-effect transition-all duration-200">{editingId && editingType === 'income' ? 'Cập Nhật' : <><Plus size={18}/> {isCollectingDebt ? 'Thu Nợ' : 'Thêm'}</>}</button>
+                                            <button onClick={handleAddIncome} disabled={!incomeSource || !incomeAmount} className="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-200 flex justify-center items-center gap-2 btn-effect transition-all duration-200">{editingId && editingType === 'income' ? 'Cập Nhật' : <><Plus size={18}/> Thêm</>}</button>
                                         </div>
                                     </div>
                                     
@@ -633,18 +595,32 @@
                                             {expenseCategory === DEBT_CATEGORY_NAME && (
                                                 <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl animate-fadeIn">
                                                     <label className="text-[10px] font-bold text-blue-700 uppercase mb-1 block">Chọn người liên quan:</label>
-                                                    <select value={selectedDebtorId} onChange={(e) => setSelectedDebtorId(e.target.value)} className="w-full p-2 bg-white border border-blue-300 rounded-lg text-sm font-bold text-gray-700 outline-none">
+                                                    <select 
+                                                        value={selectedDebtorId} 
+                                                        onChange={(e) => setSelectedDebtorId(e.target.value)} 
+                                                        className="w-full p-2 bg-white border border-blue-300 rounded-lg text-sm font-bold text-gray-700 outline-none"
+                                                    >
                                                         <option value="">-- Chọn sổ nợ --</option>
-                                                        <optgroup label="Cần trả nợ (Mình nợ)">
-                                                            {debts.filter(d => d.type === 'payable' && (d.total - d.paid) > 0).map(d => (
-                                                                <option key={d.id} value={d.id}>Trả: {d.name} (Còn: {formatCurrency(d.total - d.paid)})</option>
-                                                            ))}
-                                                        </optgroup>
-                                                        <optgroup label="Cho vay thêm (Họ nợ)">
-                                                            {debts.filter(d => d.type === 'receivable').map(d => (
-                                                                <option key={d.id} value={d.id}>Cho vay: {d.name}</option>
-                                                            ))}
-                                                        </optgroup>
+                                                        
+                                                        {/* 1. Render danh sách Mình nợ (Phải trả) */}
+                                                        {debts.filter(d => d.type === 'payable' && (d.total - d.paid) > 0).map(d => (
+                                                            <option key={d.id} value={d.id}>
+                                                                Trả: {d.name} (Còn: {formatCurrency(d.total - d.paid)})
+                                                            </option>
+                                                        ))}
+
+                                                        {/* 2. Dòng ngăn cách nhẹ (nếu có cả 2 loại nợ) */}
+                                                        {debts.some(d => d.type === 'payable' && (d.total - d.paid) > 0) && 
+                                                         debts.some(d => d.type === 'receivable') && (
+                                                            <option disabled>────────────────────</option>
+                                                        )}
+
+                                                        {/* 3. Render danh sách Họ nợ (Cho vay thêm) */}
+                                                        {debts.filter(d => d.type === 'receivable').map(d => (
+                                                            <option key={d.id} value={d.id}>
+                                                                Cho vay thêm: {d.name}
+                                                            </option>
+                                                        ))}
                                                     </select>
                                                 </div>
                                             )}
